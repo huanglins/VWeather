@@ -45,7 +45,7 @@ struct Provider: TimelineProvider {
             // 刷新间隔
             var interval = 30
             #if DEBUG
-            interval = 1
+            // interval = 1
             #endif
             
             let startDate = Date() //.dateBySet([.second: 0])

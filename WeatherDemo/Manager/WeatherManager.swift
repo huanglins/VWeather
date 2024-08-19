@@ -57,7 +57,7 @@ class WeatherManager {
                     // 是否是同一天
                     if let lastDate = lastCurrentWeatherInfo?.date, Date().compare(.isSameDay(lastDate)) {
                         let diffMinute = (Date()).difference(in: .minute, from: lastDate) ?? 31
-                        // 刷新间隔大于 30 分钟
+                        // 检查刷新间隔时间
                         if diffMinute < Int(self.refreshInterval) {
                             print("刷新间隔时间\(diffMinute)分钟，使用缓存")
                             

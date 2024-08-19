@@ -9,7 +9,7 @@ import WidgetKit
 import SwiftUI
 
 @main
-struct WeatherWidgetBundle: WidgetBundle {
+struct MainWidgetBundle: WidgetBundle {
     var body: some Widget {
         WeatherWidget()
         // WeatherWidgetLiveActivity()
