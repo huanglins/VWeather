@@ -19,7 +19,7 @@ struct ContentView: View {
                 Text("Hello, world!")
                 Text("\(weatherModel?.locationModel?.area ?? "")")
                 Text("\(weatherModel?.weatherModel?.temperature ?? 0.0)")
-                Text("上次更新时间: \(weatherModel?.date?.formatted() ?? "")")
+                Text("上次更新时间: \(weatherModel?.date?.formatted() ?? "") - \(weatherModel?.state ?? 0)")
             }
             .padding()
         }.navigationTitle("Weather")

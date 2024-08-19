@@ -11,7 +11,9 @@ import CoreLocation
 
 // 在 info.plist 增加定位权限
 // NSLocationWhenInUseUsageDescription
-// 在小组件中获取位置还需要添加 Widget Wants Location 
+// NSLocationAlwaysAndWhenInUseUsageDescription
+
+// 在小组件中获取位置还需要主工程中不是在extension中添加 Widget Wants Location
 
 struct VHLLocationModel: Codable {
     var latitude: Double = 0        // 纬度
@@ -100,7 +102,7 @@ extension VHLLocationManager {
     /// 连续定位
     func serialReGeocodeLocation(_ completionBlock: @escaping ((VHLLocationModel?, Error?) -> ())) {
         self.locationCompletionBlock = completionBlock
-        startUpdatingLocationAlways()
+        startUpdatingLocationWhenInUse()
     }
     
     /// 重大位置更新

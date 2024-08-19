@@ -594,6 +594,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = WeatherDemo/Info.plist;
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "用于获取当前位置天气信息";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "用于获取当前位置天气信息";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -627,6 +628,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = WeatherDemo/Info.plist;
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "用于获取当前位置天气信息";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "用于获取当前位置天气信息";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -659,6 +661,8 @@
 				INFOPLIST_FILE = WeatherWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = WeatherWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "用于获取当前位置天气信息";
+				INFOPLIST_KEY_NSLocationUsageDescription = "用于获取当前位置天气信息";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "用于获取当前位置天气信息";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -688,6 +692,8 @@
 				INFOPLIST_FILE = WeatherWidget/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = WeatherWidget;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "用于获取当前位置天气信息";
+				INFOPLIST_KEY_NSLocationUsageDescription = "用于获取当前位置天气信息";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "用于获取当前位置天气信息";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

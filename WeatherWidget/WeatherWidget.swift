@@ -37,18 +37,18 @@ struct Provider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
         SwiftDate.defaultRegion = .current
 
-        WeatherManager.manager.requestCurrentWeatherInfo { weatherModel, error in
+        WeatherManager.manager.requestCurrentWeatherInfo(focusRefresh: false) { weatherModel, error in
             var entries: [SimpleEntry] = []
 
+            // ** iOS 18 beta 版本中 after 不触发刷新！！
             // Generate a timeline consisting of five entries an hour apart, starting from the current date.
-            let interval = 30
-            let currentDate = Date()
-            let weatherRefreshDate = weatherModel?.date ?? Date()
+            // 刷新间隔
+            var interval = 30
+            #if DEBUG
+            interval = 1
+            #endif
             
-            var startDate = currentDate
-            if weatherRefreshDate < Date() && weatherRefreshDate + interval.minutes > Date() {
-                startDate = weatherRefreshDate
-            }
+            let startDate = Date() //.dateBySet([.second: 0])
             
             for hourOffset in 0 ..< 48 {
                 let entryDate = Calendar.current.date(byAdding: .minute, value: hourOffset * interval, to: startDate)!
@@ -56,9 +56,10 @@ struct Provider: TimelineProvider {
                 entries.append(entry)
             }
             
+            // ** 使用 after 来重新刷新 timeline。使用 atEnd 需要等 entries 使用完才会刷新 timeline  **
             let afterDate = startDate + interval.minutes
-            // ** 使用 after 来重新刷新时间线，使用 atEnd 不会进行刷新 **
             let timeline = Timeline(entries: entries, policy: .after(afterDate))
+//            let timeline = Timeline(entries: entries, policy: .atEnd)
             completion(timeline)
         }
     }
@@ -94,7 +95,8 @@ struct WeatherWidgetEntryView : View {
 //                        .foregroundStyle(.linearGradient(gradient, startPoint: .topLeading, endPoint: .bottomTrailing))
                         .frame(width: geometry.size.width, height: geometry.size.height)
                         .overlay(alignment: .topLeading) {
-                            LinearGradient(colors: colors, startPoint: UnitPoint(x: 0.0, y: 0.0),
+                            LinearGradient(colors: colors,
+                                           startPoint: UnitPoint(x: 0.0, y: 0.0),
                                            endPoint: UnitPoint(x: 1, y: 1.0)
 //                            LinearGradient(
 //                                stops: [
@@ -131,6 +133,7 @@ struct WeatherWidgetEntryView : View {
                 ZStack(alignment: .bottomLeading, content: {
                     VStack {
                         Spacer(minLength: 0)
+                        #if DEBUG
                         HStack {
                             Text(Calendar.current.startOfDay(for: entry.date), style: .timer)
                                 .font(FusionPixelRegular(14))
@@ -139,9 +142,12 @@ struct WeatherWidgetEntryView : View {
                             Spacer()
                         }
                         HStack {
-                            Text("\(entry.date.formatted())").font(FusionPixelRegular(14)).foregroundColor(Color(hex: "#EEB0D8"))
+                            Text("\(entry.date.toString(.time(.medium))) - \(weatherModel?.state ?? 0)")
+                                .font(FusionPixelRegular(14))
+                                .foregroundColor(Color(hex: "#EEB0D8"))
                             Spacer()
                         }
+                        #endif
                         WeatherInfoPanel(weatherModel: weatherModel ?? WeatherModel())
                     }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                 }).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
@@ -160,7 +166,7 @@ struct WeatherInfoPanel: View {
         let shortWeekdaySymbol = shortWeekdaySymbols[max(date.weekday - 1, 0) % 7]
         
         let area = weatherModel.locationModel?.area ?? ""
-        let temperature = Int(weatherModel.weatherModel?.temperature ?? 0.0)
+        let temperature = lroundf(Float(weatherModel.weatherModel?.temperature ?? 0.0)) // Int(weatherModel.weatherModel?.temperature ?? 0.0)
         let condition = weatherModel.weatherModel?.condition?.description ?? ""
         
         // 天气信息
@@ -179,7 +185,8 @@ struct WeatherInfoPanel: View {
                 Spacer(minLength: 0)
             }
             
-            Text("\(weatherModel.date?.formatted() ?? "")").foregroundColor(textColor)
+            let wDate = weatherModel.lastUseDate?.formatted() ?? ""
+            Text("\(wDate)").foregroundColor(textColor)
                 .font(FusionPixelRegular(10))
         }.padding(6).frame(height: 48, alignment: .leading).frame(maxWidth: 170).background(Color(hex: "#BDAD93"))
             .cornerRadius(8)
