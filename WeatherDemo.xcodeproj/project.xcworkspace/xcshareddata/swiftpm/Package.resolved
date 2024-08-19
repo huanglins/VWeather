@@ -1,5 +1,4 @@
 {
-  "originHash" : "2da67ee142f1bd127a827835041ec949588c70d0c1fcd3b2ba8aace5962265b3",
   "pins" : [
     {
       "identity" : "clockhandrotationkit",
@@ -29,5 +28,5 @@
       }
     }
   ],
-  "version" : 3
+  "version" : 2
 }

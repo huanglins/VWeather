@@ -29,32 +29,32 @@ extension View {
 }
 
 // MARK: - Image 适配 iOS accentedRenderingMode
-extension Image {
-    func adoptableWidgetAccentedRenderingModeDesaturated() -> some View {
-        if #available(iOS 18.0, *) {
-            return widgetAccentedRenderingMode(.desaturated)
-        }
-        return self
-    }
-
-    func adoptableWidgetAccentedRenderingModeAccented() -> some View {
-        if #available(iOS 18.0, *) {
-            return widgetAccentedRenderingMode(.accented)
-        }
-        return self
-    }
-    
-    func adoptableWidgetAccentedRenderingModeAccentedDesaturated() -> some View {
-        if #available(iOS 18.0, *) {
-            return widgetAccentedRenderingMode(.accentedDesaturated)
-        }
-        return self
-    }
-    
-    func adoptableWidgetAccentedRenderingModeFullColor() -> some View {
-        if #available(iOS 18.0, *) {
-            return widgetAccentedRenderingMode(.fullColor)
-        }
-        return self
-    }
-}
+//extension Image {
+//    func adoptableWidgetAccentedRenderingModeDesaturated() -> some View {
+//        if #available(iOS 18.0, *) {
+//            return widgetAccentedRenderingMode(.desaturated)
+//        }
+//        return self
+//    }
+//
+//    func adoptableWidgetAccentedRenderingModeAccented() -> some View {
+//        if #available(iOS 18.0, *) {
+//            return widgetAccentedRenderingMode(.accented)
+//        }
+//        return self
+//    }
+//    
+//    func adoptableWidgetAccentedRenderingModeAccentedDesaturated() -> some View {
+//        if #available(iOS 18.0, *) {
+//            return widgetAccentedRenderingMode(.accentedDesaturated)
+//        }
+//        return self
+//    }
+//    
+//    func adoptableWidgetAccentedRenderingModeFullColor() -> some View {
+//        if #available(iOS 18.0, *) {
+//            return widgetAccentedRenderingMode(.fullColor)
+//        }
+//        return self
+//    }
+//}

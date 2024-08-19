@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
-   LastUpgradeVersion = "1610"
+   LastUpgradeVersion = "1520"
    version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
-      buildImplicitDependencies = "YES"
-      buildArchitectures = "Automatic">
+      buildImplicitDependencies = "YES">
       <BuildActionEntries>
          <BuildActionEntry
             buildForTesting = "YES"
@@ -15,7 +14,7 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "BFA49D2E2C6F99FB00A7E7AF"
+               BlueprintIdentifier = "BFD4AA2B2C72DBE60001C5D6"
                BuildableName = "WeatherDemo.app"
                BlueprintName = "WeatherDemo"
                ReferencedContainer = "container:WeatherDemo.xcodeproj">
@@ -35,7 +34,7 @@
             parallelizable = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "BFA49D3E2C6F99FD00A7E7AF"
+               BlueprintIdentifier = "BFD4AA3B2C72DBE80001C5D6"
                BuildableName = "WeatherDemoTests.xctest"
                BlueprintName = "WeatherDemoTests"
                ReferencedContainer = "container:WeatherDemo.xcodeproj">
@@ -46,7 +45,7 @@
             parallelizable = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "BFA49D482C6F99FD00A7E7AF"
+               BlueprintIdentifier = "BFD4AA452C72DBE80001C5D6"
                BuildableName = "WeatherDemoUITests.xctest"
                BlueprintName = "WeatherDemoUITests"
                ReferencedContainer = "container:WeatherDemo.xcodeproj">
@@ -68,7 +67,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "BFA49D2E2C6F99FB00A7E7AF"
+            BlueprintIdentifier = "BFD4AA2B2C72DBE60001C5D6"
             BuildableName = "WeatherDemo.app"
             BlueprintName = "WeatherDemo"
             ReferencedContainer = "container:WeatherDemo.xcodeproj">
@@ -85,7 +84,7 @@
          runnableDebuggingMode = "0">
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "BFA49D2E2C6F99FB00A7E7AF"
+            BlueprintIdentifier = "BFD4AA2B2C72DBE60001C5D6"
             BuildableName = "WeatherDemo.app"
             BlueprintName = "WeatherDemo"
             ReferencedContainer = "container:WeatherDemo.xcodeproj">

@@ -2,7 +2,7 @@
 //  WeatherWidget.swift
 //  WeatherWidget
 //
-//  Created by Vincent on 2024/8/16.
+//  Created by vincent on 2024/8/19.
 //
 
 import WidgetKit
@@ -26,29 +26,39 @@ let WeatherColors = [
 
 struct Provider: TimelineProvider {
     func placeholder(in context: Context) -> SimpleEntry {
-        return SimpleEntry(date: Date())
+        SimpleEntry(date: Date())
     }
-    
-    func getSnapshot(in context: Context, completion: @escaping @Sendable (SimpleEntry) -> Void) {
-        completion(SimpleEntry(date: Date()))
+
+    func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> ()) {
+        let entry = SimpleEntry(date: Date())
+        completion(entry)
     }
-    
-    func getTimeline(in context: Context, completion: @escaping @Sendable (Timeline<SimpleEntry>) -> Void) {
+
+    func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
         SwiftDate.defaultRegion = .current
 
         WeatherManager.manager.requestCurrentWeatherInfo { weatherModel, error in
             var entries: [SimpleEntry] = []
 
             // Generate a timeline consisting of five entries an hour apart, starting from the current date.
-            let currentDate = Date().dateBySet([.minute: 0, .second: 0]) ?? Date()
+            let interval = 30
+            let currentDate = Date()
+            let weatherRefreshDate = weatherModel?.date ?? Date()
+            
+            var startDate = currentDate
+            if weatherRefreshDate < Date() && weatherRefreshDate + interval.minutes > Date() {
+                startDate = weatherRefreshDate
+            }
             
             for hourOffset in 0 ..< 48 {
-                let entryDate = Calendar.current.date(byAdding: .minute, value: hourOffset * 30, to: currentDate)!
+                let entryDate = Calendar.current.date(byAdding: .minute, value: hourOffset * interval, to: startDate)!
                 let entry = SimpleEntry(date: entryDate)
                 entries.append(entry)
             }
-
-            let timeline = Timeline(entries: entries, policy: .atEnd)
+            
+            let afterDate = startDate + interval.minutes
+            // ** 使用 after 来重新刷新时间线，使用 atEnd 不会进行刷新 **
+            let timeline = Timeline(entries: entries, policy: .after(afterDate))
             completion(timeline)
         }
     }
@@ -119,7 +129,21 @@ struct WeatherWidgetEntryView : View {
                 
                 // 天气面板信息
                 ZStack(alignment: .bottomLeading, content: {
-                    WeatherInfoPanel(weatherModel: weatherModel ?? WeatherModel())
+                    VStack {
+                        Spacer(minLength: 0)
+                        HStack {
+                            Text(Calendar.current.startOfDay(for: entry.date), style: .timer)
+                                .font(FusionPixelRegular(14))
+                                .multilineTextAlignment(.leading)
+                                .foregroundColor(Color(hex: "#EEB0D8"))
+                            Spacer()
+                        }
+                        HStack {
+                            Text("\(entry.date.formatted())").font(FusionPixelRegular(14)).foregroundColor(Color(hex: "#EEB0D8"))
+                            Spacer()
+                        }
+                        WeatherInfoPanel(weatherModel: weatherModel ?? WeatherModel())
+                    }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                 }).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                     .padding(6)
             }.frame(width: geometry.size.width, height: geometry.size.height)
@@ -133,7 +157,7 @@ struct WeatherInfoPanel: View {
     var body: some View {
         let date = Date()
         let shortWeekdaySymbols = Calendar.current.veryShortWeekdaySymbols
-        let shortWeekdaySymbol = shortWeekdaySymbols[date.weekday % 7]
+        let shortWeekdaySymbol = shortWeekdaySymbols[max(date.weekday - 1, 0) % 7]
         
         let area = weatherModel.locationModel?.area ?? ""
         let temperature = Int(weatherModel.weatherModel?.temperature ?? 0.0)
@@ -186,20 +210,16 @@ struct WeatherWidget: Widget {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
             WeatherWidgetEntryView(entry: entry)
                 .adoptableWidgetBackground(.clear)
-        }.adoptableWidgetContentMargin()
+        }
+        .configurationDisplayName("天气组件")
+        .description("我的天气组件")
+        .adoptableWidgetContentMargin()
     }
 }
 
-//extension ConfigurationAppIntent {
-//    fileprivate static var smiley: ConfigurationAppIntent {
-//        let intent = ConfigurationAppIntent()
-//        intent.favoriteEmoji = "😀"
-//        return intent
-//    }
-//    
-//    fileprivate static var starEyes: ConfigurationAppIntent {
-//        let intent = ConfigurationAppIntent()
-//        intent.favoriteEmoji = "🤩"
-//        return intent
-//    }
-//}
+#Preview(as: .systemSmall) {
+    WeatherWidget()
+} timeline: {
+    SimpleEntry(date: .now)
+    SimpleEntry(date: .now)
+}

@@ -2,7 +2,7 @@
 //  WeatherWidgetLiveActivity.swift
 //  WeatherWidget
 //
-//  Created by Vincent on 2024/8/16.
+//  Created by vincent on 2024/8/19.
 //
 
 import ActivityKit
@@ -72,9 +72,9 @@ extension WeatherWidgetAttributes.ContentState {
      }
 }
 
-//#Preview("Notification", as: .content, using: WeatherWidgetAttributes.preview) {
-//   WeatherWidgetLiveActivity()
-//} contentStates: {
-//    WeatherWidgetAttributes.ContentState.smiley
-//    WeatherWidgetAttributes.ContentState.starEyes
-//}
+#Preview("Notification", as: .content, using: WeatherWidgetAttributes.preview) {
+   WeatherWidgetLiveActivity()
+} contentStates: {
+    WeatherWidgetAttributes.ContentState.smiley
+    WeatherWidgetAttributes.ContentState.starEyes
+}
