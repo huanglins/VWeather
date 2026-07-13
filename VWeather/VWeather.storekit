@@ -1,0 +1,41 @@
+{
+  "identifier" : "A1B2C3D4-0000-0000-0000-00000000VWTR",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "12.00",
+      "familyShareable" : false,
+      "internalID" : "A1B2C3D4-0000-0000-0000-0000000000PR",
+      "localizations" : [
+        {
+          "description" : "解锁 VWeather 高级功能",
+          "displayName" : "VWeather Pro",
+          "locale" : "zh_CN"
+        }
+      ],
+      "productID" : "cn.vincents.VWeather.pro",
+      "referenceName" : "VWeather Pro",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "0000000000",
+    "_developerTeamID" : "3N2YQM983F",
+    "_failTransactionsEnabled" : false,
+    "_lastSynchronizedDate" : 0,
+    "_locale" : "zh_CN",
+    "_storefront" : "CHN",
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

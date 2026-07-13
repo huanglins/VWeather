@@ -1,0 +1,51 @@
+{
+  "originHash" : "50f94e685824e22289f478978a86029d31be0b5082ceafe62a27887795a26282",
+  "pins" : [
+    {
+      "identity" : "clockhandrotationkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/octree/ClockHandRotationKit",
+      "state" : {
+        "revision" : "a0bfb020f58f5065b7a4dc53ff10be1c6bb187db",
+        "version" : "1.0.1"
+      }
+    },
+    {
+      "identity" : "moonkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/davideilmito/MoonKit",
+      "state" : {
+        "revision" : "be220f375384b47f2b6eaeda54319ceaec0b5a59",
+        "version" : "2.1.1"
+      }
+    },
+    {
+      "identity" : "sunkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/SunKit-Swift/SunKit",
+      "state" : {
+        "revision" : "a18a6f780770680f4f2ffe3488a1f3b335ec5ff6",
+        "version" : "2.8.2"
+      }
+    },
+    {
+      "identity" : "swiftdate",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/malcommac/SwiftDate",
+      "state" : {
+        "revision" : "5d943224c3bb173e6ecf27295611615eba90c80e",
+        "version" : "7.0.0"
+      }
+    },
+    {
+      "identity" : "swinganimation",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/TopWidgets/SwingAnimation.git",
+      "state" : {
+        "revision" : "feb1fced29715d59f6aeb8bdbf5159b479fd24de",
+        "version" : "1.0.0"
+      }
+    }
+  ],
+  "version" : 3
+}

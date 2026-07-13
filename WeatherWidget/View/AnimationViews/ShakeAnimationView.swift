@@ -46,13 +46,17 @@ struct ShakeAnimationView<Content: View>: View {
             let angle = 360.0 / (Double(max(2 * count - 2, 1)))
             //正方形宽高
             let imageWH = max(width, height)
-            //一半宽高
-            let halfWH = (imageWH / 2)
+            //一半宽高（显式转为 Double，统一在 Double 下计算，避免 CGFloat/Double 混合推断导致类型检查超时）
+            let halfWH = Double(imageWH / 2)
             //一半弧度
             let halfRadian = (angle / 2) / 180.0 * Double.pi
             let tanHalf = tan(halfRadian)
             // 半径
-            let radiu = sqrt((5 * halfWH * halfWH) + (halfWH * halfWH) / (tanHalf * tanHalf) + (4 * halfWH * halfWH / tanHalf))
+            let halfWHSq = halfWH * halfWH
+            let term1 = 5.0 * halfWHSq
+            let term2 = halfWHSq / (tanHalf * tanHalf)
+            let term3 = 4.0 * halfWHSq / tanHalf
+            let radiu = sqrt(term1 + term2 + term3)
             let b = halfWH / tanHalf
             let lineWidth = radiu - b
             //这里其实不乘以300才是完完全全正确的结果,每个大小都是刚刚好的.但是这样转起来之后重叠部分会留阴影, 所以加以放大后.半径变大了,但是重叠部分还是那么大.相应的周长绝对速度就变大了. 这样阴影就会快速略过,肉眼便无法感知了.越放大效果越好.应该是这个理

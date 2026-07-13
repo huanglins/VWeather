@@ -30,52 +30,71 @@ struct Provider: TimelineProvider {
     }
 
     func getSnapshot(in context: Context, completion: @escaping (SimpleEntry) -> ()) {
-        let entry = SimpleEntry(date: Date())
-        completion(entry)
+        _ = DBManager.manager
+        completion(cachedEntry())
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<Entry>) -> ()) {
         SwiftDate.defaultRegion = .current
+        _ = DBManager.manager   // widget 进程初始化共享 DB
 
-        WeatherManager.manager.requestCurrentWeatherInfo(focusRefresh: false) { weatherModel, error in
-            var entries: [SimpleEntry] = []
+        // widget 也请求天气：拉取当前选中城市的最新数据（受 30 分钟节流，与主 App 共享缓存）
+        Task {
+            let base = await loadEntry()
 
-            // ** iOS 18 beta 版本中 after 不触发刷新！！
-            // Generate a timeline consisting of five entries an hour apart, starting from the current date.
-            // 刷新间隔
-            var interval = 30
-            #if DEBUG
-            // interval = 1
-            #endif
-            
-            let startDate = Date() //.dateBySet([.second: 0])
-            
-            for hourOffset in 0 ..< 48 {
-                let entryDate = Calendar.current.date(byAdding: .minute, value: hourOffset * interval, to: startDate)!
-                let entry = SimpleEntry(date: entryDate)
-                entries.append(entry)
+            let interval = 30
+            let startDate = Date()
+            let entries: [SimpleEntry] = (0 ..< 48).map { offset in
+                let entryDate = Calendar.current.date(byAdding: .minute, value: offset * interval, to: startDate)!
+                return SimpleEntry(date: entryDate,
+                                   cityName: base.cityName,
+                                   temperature: base.temperature,
+                                   conditionText: base.conditionText,
+                                   symbol: base.symbol)
             }
-            
-            // ** 使用 after 来重新刷新 timeline。使用 atEnd 需要等 entries 使用完才会刷新 timeline  **
             let afterDate = startDate + interval.minutes
-            let timeline = Timeline(entries: entries, policy: .after(afterDate))
-//            let timeline = Timeline(entries: entries, policy: .atEnd)
-            completion(timeline)
+            completion(Timeline(entries: entries, policy: .after(afterDate)))
         }
+    }
+
+    /// 请求并组装当前选中城市的天气 entry
+    private func loadEntry() async -> SimpleEntry {
+        guard let city = CityWeatherManager.manager.selectedCity() else {
+            return SimpleEntry(date: Date())
+        }
+        let snap = await CityWeatherManager.manager.refresh(for: city)
+        return entry(city: city, weather: snap?.weather)
+    }
+
+    /// 仅读缓存（用于快照占位）
+    private func cachedEntry() -> SimpleEntry {
+        guard let city = CityWeatherManager.manager.selectedCity() else {
+            return SimpleEntry(date: Date())
+        }
+        return entry(city: city, weather: CityWeatherManager.manager.cachedSnapshot(for: city)?.weather)
+    }
+
+    private func entry(city: CityModel, weather: WeatherDisplay?) -> SimpleEntry {
+        SimpleEntry(date: Date(),
+                    cityName: city.displayName,
+                    temperature: weather?.temperature,
+                    conditionText: weather?.conditionText ?? "",
+                    symbol: weather?.symbol ?? "")
     }
 }
 
 struct SimpleEntry: TimelineEntry {
     let date: Date
+    var cityName: String = ""
+    var temperature: Double? = nil
+    var conditionText: String = ""
+    var symbol: String = ""
 }
 
 struct WeatherWidgetEntryView : View {
     var entry: Provider.Entry
 
     var body: some View {
-        
-        let weatherModel = WeatherManager.manager.getCurrentWeatherInfo()
-        
         let date = Date()
         let hour = date.hour / 2
         let colors = WeatherColors[hour % WeatherColors.count].map{ Color(hex: $0) }
@@ -141,14 +160,8 @@ struct WeatherWidgetEntryView : View {
                                 .foregroundColor(Color(hex: "#EEB0D8"))
                             Spacer()
                         }
-                        HStack {
-                            Text("\(entry.date.toString(.time(.medium))) - \(weatherModel?.state ?? 0)")
-                                .font(FusionPixelRegular(14))
-                                .foregroundColor(Color(hex: "#EEB0D8"))
-                            Spacer()
-                        }
                         #endif
-                        WeatherInfoPanel(weatherModel: weatherModel ?? WeatherModel())
+                        WeatherInfoPanel(entry: entry)
                     }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                 }).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
                     .padding(6)
@@ -158,16 +171,16 @@ struct WeatherWidgetEntryView : View {
 }
 
 struct WeatherInfoPanel: View {
-    var weatherModel: WeatherModel
-    
+    var entry: SimpleEntry
+
     var body: some View {
         let date = Date()
         let shortWeekdaySymbols = Calendar.current.veryShortWeekdaySymbols
         let shortWeekdaySymbol = shortWeekdaySymbols[max(date.weekday - 1, 0) % 7]
-        
-        let area = weatherModel.locationModel?.area ?? ""
-        let temperature = lroundf(Float(weatherModel.weatherModel?.temperature ?? 0.0)) // Int(weatherModel.weatherModel?.temperature ?? 0.0)
-        let condition = weatherModel.weatherModel?.condition?.description ?? ""
+
+        let area = entry.cityName
+        let temperature = lroundf(Float(entry.temperature ?? 0.0))
+        let condition = entry.conditionText
         
         // 天气信息
         let textColor = Color(hex: "#593F40")
@@ -185,7 +198,7 @@ struct WeatherInfoPanel: View {
                 Spacer(minLength: 0)
             }
             
-            let wDate = weatherModel.lastUseDate?.formatted() ?? ""
+            let wDate = entry.date.formatted()
             Text("\(wDate)").foregroundColor(textColor)
                 .font(FusionPixelRegular(10))
         }.padding(6).frame(height: 48, alignment: .leading).frame(maxWidth: 170).background(Color(hex: "#BDAD93"))
