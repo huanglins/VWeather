@@ -18,7 +18,7 @@ class DBManager {
 
     private let lock = NSLock()
 
-    let DB_GROUP = "group.cn.vincents.dev"
+    let DB_GROUP = "group.cn.vincents.weather"
     let DBFolder = "VWeather"
     let DBName = "weather.sqlite"
 
