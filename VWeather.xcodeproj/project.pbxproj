@@ -65,6 +65,7 @@
 		FADE0000000000000000020C /* CityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE0000000000000000010C /* CityManager.swift */; };
 		FADE0000000000000000020D /* CityWeatherManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE0000000000000000010D /* CityWeatherManager.swift */; };
 		FADE0000000000000000020E /* CityListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE0000000000000000010E /* CityListView.swift */; };
+		FADE0000000000000000020F /* CitySearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE0000000000000000010F /* CitySearchView.swift */; };
 		FADE00000000000000001201 /* VHLiCloud.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000001101 /* VHLiCloud.swift */; };
 		FADE00000000000000001202 /* VHLCKSyncEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000001102 /* VHLCKSyncEngine.swift */; };
 		FADE00000000000000001203 /* VHLCKSyncEngine+Delegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000001103 /* VHLCKSyncEngine+Delegate.swift */; };
@@ -191,6 +192,7 @@
 		FADE0000000000000000010C /* CityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityManager.swift; sourceTree = "<group>"; };
 		FADE0000000000000000010D /* CityWeatherManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityWeatherManager.swift; sourceTree = "<group>"; };
 		FADE0000000000000000010E /* CityListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityListView.swift; sourceTree = "<group>"; };
+		FADE0000000000000000010F /* CitySearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CitySearchView.swift; sourceTree = "<group>"; };
 		FADE00000000000000001101 /* VHLiCloud.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VHLiCloud.swift; sourceTree = "<group>"; };
 		FADE00000000000000001102 /* VHLCKSyncEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VHLCKSyncEngine.swift; sourceTree = "<group>"; };
 		FADE00000000000000001103 /* VHLCKSyncEngine+Delegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VHLCKSyncEngine+Delegate.swift"; sourceTree = "<group>"; };
@@ -328,6 +330,7 @@
 			children = (
 				FADE0000000000000000111C /* SettingsView.swift */,
 				FADE0000000000000000010E /* CityListView.swift */,
+				FADE0000000000000000010F /* CitySearchView.swift */,
 				BFD4AA312C72DBE60001C5D6 /* ContentView.swift */,
 			);
 			path = View;
@@ -795,6 +798,7 @@
 				FADE0000000000000000020C /* CityManager.swift in Sources */,
 				FADE0000000000000000020D /* CityWeatherManager.swift in Sources */,
 				FADE0000000000000000020E /* CityListView.swift in Sources */,
+				FADE0000000000000000020F /* CitySearchView.swift in Sources */,
 				BFD4AAC72C72E15C0001C5D6 /* ShakeAnimationView.swift in Sources */,
 				BFD4AA322C72DBE60001C5D6 /* ContentView.swift in Sources */,
 				BFD4AAB92C72E10E0001C5D6 /* AppDelegate.swift in Sources */,

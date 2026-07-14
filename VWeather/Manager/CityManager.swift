@@ -90,7 +90,8 @@ class CityManager {
         c.latitude = lat
         c.longitude = lng
         c.cityKey = CityModel.makeKey(lat: lat, lng: lng)
-        c.name = placemark.locality
+        c.name = placemark.subLocality
+            ?? placemark.locality
             ?? placemark.subAdministrativeArea
             ?? placemark.administrativeArea
             ?? placemark.name

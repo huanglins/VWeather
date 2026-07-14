@@ -63,11 +63,8 @@ class DBManager {
 
         if dbVersion > version {
             // v2：CityModel 主键从 pkid 改为 cityKey 属结构变更，
-            // CREATE TABLE IF NOT EXISTS / addColumnIfNoExist 无法改主键，故重建该表。
-            // （其余新增列如 cloudKitSystemFields/isDeleted/updateDate 由 createTable 自动补齐。）
-            if version < 2 {
-                try? CityModel().dropTable()
-            }
+            // 直接使用 createTable 让 ORM 自动补齐新列（addColumnIfNoExist）。
+            // 不再 dropTable + 重建，避免丢失数据。
             createTablesIfNeeded()
             _ = db.setVersion(dbVersion)
             print("[DBManager] 数据库升级到版本", dbVersion)

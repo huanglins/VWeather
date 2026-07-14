@@ -42,9 +42,11 @@ class CityWeatherManager {
     func refresh(for city: CityModel, force: Bool = false) async -> CityWeatherSnapshot? {
         guard let key = city.cityKey else { return nil }
 
-        // 频率控制：非强制刷新时，若缓存仍在有效期内，直接复用缓存，不请求 WeatherKit
+        // 频率控制：非强制刷新时，若缓存仍在有效期内，直接复用缓存，不请求 WeatherKit。
+        // 但如果缓存中没有天气数据（如之前的请求失败），则不受间隔限制，强制刷新。
         if !force,
            let cached = cachedSnapshot(for: city),
+           cached.weatherJSON != nil,
            let updated = cached.updateDate,
            Date().timeIntervalSince(updated) < Self.minRefreshInterval {
             return cached

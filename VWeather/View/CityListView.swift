@@ -2,7 +2,7 @@
 //  CityListView.swift
 //  VWeather
 //
-//  城市管理页：搜索添加城市、点击切换首页城市、左滑删除。
+//  城市管理页：右上角 "+" 添加城市、点击切换首页城市、左滑删除。
 //
 
 import SwiftUI
@@ -11,71 +11,55 @@ struct CityListView: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var cities: [CityModel] = []
-    @State private var keyword = ""
-    @State private var searchResults: [CityModel] = []
-    @State private var searching = false
+    @State private var showCitySearch = false
 
     var body: some View {
         NavigationStack {
             List {
-                // 搜索结果
-                if searching {
-                    Section("搜索结果") {
-                        HStack { ProgressView(); Text("搜索中…").foregroundStyle(.secondary) }
-                    }
-                } else if !searchResults.isEmpty {
-                    Section("搜索结果") {
-                        ForEach(searchResults, id: \.cityKey) { city in
+                Section("我的城市") {
+                    if cities.isEmpty {
+                        Text("还没有添加城市")
+                            .foregroundStyle(.secondary)
+                    } else {
+                        ForEach(cities, id: \.cityKey) { city in
                             Button {
-                                add(city)
+                                select(city)
                             } label: {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(city.name ?? "未知")
-                                        .foregroundStyle(.primary)
-                                    if let addr = city.fullAddress, !addr.isEmpty {
-                                        Text(addr).font(.caption).foregroundStyle(.secondary)
+                                HStack {
+                                    if city.isCurrentLocation == true {
+                                        Image(systemName: "location.fill")
+                                            .foregroundStyle(.blue)
+                                    }
+                                    Text(city.displayName).foregroundStyle(.primary)
+                                    Spacer()
+                                    if let temp = CityWeatherManager.manager.cachedSnapshot(for: city)?.weather?.temperature {
+                                        Text(AppSettings.shared.tempText(temp)).foregroundStyle(.secondary)
                                     }
                                 }
                             }
                         }
+                        .onDelete(perform: deleteRows)
                     }
-                }
-
-                // 我的城市
-                Section("我的城市") {
-                    ForEach(cities, id: \.cityKey) { city in
-                        Button {
-                            select(city)
-                        } label: {
-                            HStack {
-                                if city.isCurrentLocation == true {
-                                    Image(systemName: "location.fill")
-                                        .foregroundStyle(.blue)
-                                }
-                                Text(city.displayName).foregroundStyle(.primary)
-                                Spacer()
-                                if let temp = CityWeatherManager.manager.cachedSnapshot(for: city)?.weather?.temperature {
-                                    Text(AppSettings.shared.tempText(temp)).foregroundStyle(.secondary)
-                                }
-                            }
-                        }
-                    }
-                    .onDelete(perform: deleteRows)
                 }
             }
             .navigationTitle("城市")
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $keyword, prompt: "搜索城市，如「北京」")
-            .onSubmit(of: .search) {
-                Task { await runSearch() }
-            }
-            .onChange(of: keyword) { _, newValue in
-                if newValue.isEmpty { searchResults = [] }
-            }
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button("完成") { dismiss() }
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showCitySearch = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+            .sheet(isPresented: $showCitySearch) {
+                CitySearchView(onAdd: { _ in
+                    cities = CityManager.manager.allCities()
+                })
             }
             .onAppear {
                 cities = CityManager.manager.allCities()
@@ -84,24 +68,6 @@ struct CityListView: View {
     }
 
     // MARK: - 操作
-
-    private func runSearch() async {
-        searching = true
-        let results = await CityManager.manager.searchCities(keyword)
-        await MainActor.run {
-            searchResults = results
-            searching = false
-        }
-    }
-
-    private func add(_ city: CityModel) {
-        _ = CityManager.manager.addCity(city)
-        cities = CityManager.manager.allCities()
-        searchResults = []
-        keyword = ""
-        // 预取天气写入缓存（新添加城市强制请求一次）
-        Task { await CityWeatherManager.manager.refresh(for: city, force: true) }
-    }
 
     private func select(_ city: CityModel) {
         CityManager.manager.setSelected(city)
