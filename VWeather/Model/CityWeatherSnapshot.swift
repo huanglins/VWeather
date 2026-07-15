@@ -50,11 +50,17 @@ struct CityWeatherSnapshot: VHLSQLiteObject {
     var cityKey: String?        // 关联城市（唯一键）
 
     // 各模型整体 JSON（避免逐字段映射）
-    var weatherJSON: String?    // WeatherDisplay
+    var weatherJSON: String?    // WeatherDisplay（WeatherKit）
     var sunJSON: String?        // VHLSunInfo
     var moonJSON: String?       // VHLMoonInfo
+    var supplementJSON: String? // WeatherSupplement（vapi 后台，AQI/生活指数/分钟降水/预警）
 
-    var updateDate: Date?       // 快照更新时间
+    var updateDate: Date?       // 天气/日月的更新时间
+    /// 补充数据的最后一次**尝试**时间（成功或失败都记）。
+    /// 与 `updateDate` 分开：两个数据源各自独立节流，否则 Widget 每 30 分钟刷新会
+    /// 一直把 `updateDate` 顶新，导致主 App 每次都命中节流、补充数据永远拉不到。
+    /// 失败也记时间，是为了让后台故障时按 30 分钟退避，而不是每次刷新都重试。
+    var supplementDate: Date?
 
     init() {}
 
@@ -64,6 +70,7 @@ struct CityWeatherSnapshot: VHLSQLiteObject {
     var weather: WeatherDisplay? { Self.decodeJSON(weatherJSON) }
     var sun: VHLSunInfo? { Self.decodeJSON(sunJSON) }
     var moon: VHLMoonInfo? { Self.decodeJSON(moonJSON) }
+    var supplement: WeatherSupplement? { Self.decodeJSON(supplementJSON) }
 
     static func encodeJSON<T: Encodable>(_ value: T) -> String? {
         guard let data = try? JSONEncoder().encode(value) else { return nil }

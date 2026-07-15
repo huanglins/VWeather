@@ -62,7 +62,8 @@ struct Provider: TimelineProvider {
         guard let city = CityWeatherManager.manager.selectedCity() else {
             return SimpleEntry(date: Date())
         }
-        let snap = await CityWeatherManager.manager.refresh(for: city)
+        // 不拉补充数据：widget 只显示温度/天气现象，省一次网络请求与和风配额
+        let snap = await CityWeatherManager.manager.refresh(for: city, includeSupplement: false)
         return entry(city: city, weather: snap?.weather)
     }
 
