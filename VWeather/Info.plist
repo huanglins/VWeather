@@ -13,8 +13,6 @@
 			</array>
 		</dict>
 	</array>
-	<key>NSWidgetWantsLocation</key>
-	<false/>
 	<key>UIAppFonts</key>
 	<array>
 		<string>fusion-pixel.ttf</string>

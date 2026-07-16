@@ -203,13 +203,13 @@ struct SunEventProvider: AppIntentTimelineProvider {
 
     func snapshot(for configuration: SelectCityIntent, in context: Context) async -> SunEventEntry {
         _ = DBManager.manager
-        return makeEntries(configuration, now: Date()).first
+        return makeEntries(await resolveCity(configuration), now: Date()).first
             ?? SunEventEntry(date: Date(), missing: true)
     }
 
     func timeline(for configuration: SelectCityIntent, in context: Context) async -> Timeline<SunEventEntry> {
         _ = DBManager.manager
-        let entries = makeEntries(configuration, now: Date())
+        let entries = makeEntries(await resolveCity(configuration), now: Date())
         guard let last = entries.last, !last.missing else {
             return Timeline(entries: [SunEventEntry(date: Date(), missing: true)],
                             policy: .after(Date().addingTimeInterval(60 * 60)))
@@ -220,8 +220,8 @@ struct SunEventProvider: AppIntentTimelineProvider {
 
     /// 生成从 now 到「下一个事件」之间、每隔一段的一串 entry：
     /// 大时间/事件名/倒计时全程不变，只有白点进度与配色随时间推进 → 白点会缓慢前移。
-    private func makeEntries(_ configuration: SelectCityIntent, now: Date) -> [SunEventEntry] {
-        guard let city = resolveCity(configuration) else {
+    private func makeEntries(_ city: CityModel?, now: Date) -> [SunEventEntry] {
+        guard let city else {
             return [SunEventEntry(date: now, missing: true)]
         }
         let location = city.location
@@ -258,19 +258,14 @@ struct SunEventProvider: AppIntentTimelineProvider {
         return entries
     }
 
-    /// 与「城市天气」小组件同一套解析：配置指定城市 / 当前位置 / 未配置回退。
-    private func resolveCity(_ configuration: SelectCityIntent) -> CityModel? {
+    /// 与「城市天气」小组件同一套解析：配置指定城市 / 当前位置（取系统位置刷新）/ 未配置回退。
+    private func resolveCity(_ configuration: SelectCityIntent) async -> CityModel? {
         if let key = configuration.cityKey {
-            if key == kWidgetCurrentLocation { return currentLocationCity() }
+            if key == kWidgetCurrentLocation { return await WidgetLocation.refreshedCity() }
             return CityModel.objects(whereSQL: "cityKey = ?", params: [key])
                 .first { $0.isDeleted != true }
         }
-        return currentLocationCity() ?? CityWeatherManager.manager.selectedCity()
-    }
-
-    private func currentLocationCity() -> CityModel? {
-        CityModel.objects(order: .ASC("sortOrder"))
-            .first { $0.isCurrentLocation == true && $0.isDeleted != true }
+        return await WidgetLocation.refreshedCity() ?? CityWeatherManager.manager.selectedCity()
     }
 }
 

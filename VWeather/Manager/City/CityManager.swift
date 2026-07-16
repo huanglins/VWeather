@@ -17,7 +17,7 @@ extension Notification.Name {
 class CityManager {
     static let manager = CityManager()
 
-    private let ud = UserDefaults(suiteName: "group.cn.vincents.dev") ?? .standard
+    private let ud = UserDefaults(suiteName: "group.cn.vincents.weather") ?? .standard
 
     // MARK: - 查询
 

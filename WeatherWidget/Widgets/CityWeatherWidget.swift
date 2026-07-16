@@ -11,6 +11,58 @@
 
 import SwiftUI
 import WidgetKit
+import CoreLocation
+
+/// 小组件端的「当前位置」刷新。
+///
+/// 小组件本身**能**拿位置：Info.plist 里 `NSWidgetWantsLocation = true` 后，系统会在
+/// 显著移动时刷新小组件，并让时间线里读到最新位置。这里取系统位置、必要时更新共享库里
+/// 的「当前位置」记录（坐标 + 反查地名），使小组件不必等主 App 打开也能跟随移动。
+enum WidgetLocation {
+    /// 已存的「当前位置」城市记录。
+    static func storedCity() -> CityModel? {
+        CityModel.objects(order: .ASC("sortOrder"))
+            .first { $0.isCurrentLocation == true && $0.isDeleted != true }
+    }
+
+    /// 取系统位置刷新「当前位置」：与已存坐标相差较大才反查地名并写库，否则沿用已存记录。
+    static func refreshedCity() async -> CityModel? {
+        let stored = storedCity()
+
+        let mgr = CLLocationManager()
+        // 小组件不能弹权限，只在已授权且系统给了缓存位置时用；否则沿用已存记录。
+        let status = mgr.authorizationStatus
+        guard status == .authorizedWhenInUse || status == .authorizedAlways,
+              let loc = mgr.location else { return stored }
+
+        // 与已存坐标相差 <500m 视为没动：省一次反查 + 写库。
+        if let s = stored, let la = s.latitude, let lo = s.longitude,
+           loc.distance(from: CLLocation(latitude: la, longitude: lo)) < 500 {
+            return stored
+        }
+
+        // 移动了：以稳定主键原地更新记录（当前位置不参与同步，直接写库即可）。
+        var c = stored ?? CityModel()
+        c.cityKey = CityModel.currentLocationKey
+        c.latitude = loc.coordinate.latitude
+        c.longitude = loc.coordinate.longitude
+        c.isCurrentLocation = true
+        c.isDeleted = false
+        c.sortOrder = 0
+        if c.createDate == nil { c.createDate = Date() }
+        c.updateDate = Date()
+        if let pm = try? await CLGeocoder().reverseGeocodeLocation(loc).first {
+            c.name = pm.subLocality ?? pm.locality ?? pm.subAdministrativeArea
+                ?? pm.administrativeArea ?? pm.name ?? c.name
+            c.province = pm.administrativeArea
+            c.country = pm.country
+            c.fullAddress = [pm.country, pm.administrativeArea, pm.locality, pm.subLocality]
+                .compactMap { $0 }.joined()
+        }
+        c.saveOrUpdate()
+        return c
+    }
+}
 
 struct CityWeatherEntry: TimelineEntry {
     let date: Date
@@ -34,14 +86,14 @@ struct CityWeatherProvider: AppIntentTimelineProvider {
 
     /// 组件库预览与快照：只读缓存，不发请求 —— 这两处要求立刻返回。
     func snapshot(for configuration: SelectCityIntent, in context: Context) async -> CityWeatherEntry {
-        guard let city = resolveCity(configuration) else {
+        guard let city = await resolveCity(configuration) else {
             return CityWeatherEntry(date: Date(), missing: true)
         }
         return entry(city, CityWeatherManager.manager.cachedSnapshot(for: city))
     }
 
     func timeline(for configuration: SelectCityIntent, in context: Context) async -> Timeline<CityWeatherEntry> {
-        guard let city = resolveCity(configuration) else {
+        guard let city = await resolveCity(configuration) else {
             // 没城市可显示时也要给个时间线，否则组件会一直卡在占位态。
             // 隔久一点再看 —— 用户去 App 加城市这件事，不值得频繁轮询。
             return Timeline(entries: [CityWeatherEntry(date: Date(), missing: true)],
@@ -63,14 +115,13 @@ struct CityWeatherProvider: AppIntentTimelineProvider {
     ///   · 配置选了「当前位置」（存哨兵）→ 查当下的当前位置城市，坐标随便变都跟得上
     ///   · 配置选了具体城市（存 cityKey）→ 按 cityKey 查；查不到（被删）→ 返回 nil 显示缺失
     ///   · 未配置（cityKey 为空）→ 回退到当前位置，其次 App 选中的
-    private func resolveCity(_ configuration: SelectCityIntent) -> CityModel? {
+    private func resolveCity(_ configuration: SelectCityIntent) async -> CityModel? {
         _ = DBManager.manager          // 小组件进程里初始化共享库
 
         if let key = configuration.cityKey {
-            // 「当前位置」：不锁坐标，查实时的那条 —— 用户移动后当前位置城市的
-            // cityKey 会变，这里跟着最新的走。
+            // 「当前位置」：取系统位置刷新后返回 —— 移动后不必等主 App 打开也能跟上。
             if key == kWidgetCurrentLocation {
-                return currentLocationCity()
+                return await WidgetLocation.refreshedCity()
             }
             // 具体城市：按 cityKey 查。查不到就返回 nil（显示缺失），不静默回退成别的城市。
             // 不加 isDeleted != 1：isDeleted 为 NULL 时该条件在 SQL 里是 NULL 而非 true，
@@ -79,13 +130,7 @@ struct CityWeatherProvider: AppIntentTimelineProvider {
                 .first { $0.isDeleted != true }
         }
         // 未配置：优先当前位置，其次 App 选中的。
-        return currentLocationCity() ?? CityWeatherManager.manager.selectedCity()
-    }
-
-    /// 当下的「当前位置」城市（坐标可能已随移动而变，这里取最新的那条）。
-    private func currentLocationCity() -> CityModel? {
-        CityModel.objects(order: .ASC("sortOrder"))
-            .first { $0.isCurrentLocation == true && $0.isDeleted != true }
+        return await WidgetLocation.refreshedCity() ?? CityWeatherManager.manager.selectedCity()
     }
 
     private func entry(_ city: CityModel, _ snapshot: CityWeatherSnapshot?) -> CityWeatherEntry {
