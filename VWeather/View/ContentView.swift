@@ -67,9 +67,9 @@ struct ContentView: View {
     private func weatherList(city: CityModel) -> some View {
         let sun = snapshot?.sun
         let moon = snapshot?.moon
-        let sup = snapshot?.supplement
-        let now = sup?.now
-        let today = sup?.daily?.first
+        let report = snapshot?.weather
+        let now = report?.now
+        let today = report?.daily?.first
         // 日月由 SunKit/MoonKit 本地算，昼夜判断直接用它的结果
         let isNight = sun?.isNight ?? false
         List {
@@ -94,7 +94,7 @@ struct ContentView: View {
             }
 
             // 气象预警：时效性最强，放在最前
-            if let alerts = sup?.alerts, !alerts.isEmpty {
+            if let alerts = report?.alerts, !alerts.isEmpty {
                 Section("气象预警") {
                     ForEach(alerts) { alert in
                         NavigationLink {
@@ -107,22 +107,22 @@ struct ContentView: View {
             }
 
             // 分钟级降水：两小时内要不要带伞，比其它补充数据都急，故紧跟预警
-            if let minutely = sup?.minutely {
+            if let minutely = report?.minutely {
                 MinutelyPrecipSection(minutely: minutely)
             }
 
             // 逐小时预报：横向滚动，未来 24 小时
-            if let hours = sup?.hourly, !hours.isEmpty {
-                HourlyForecastSection(hours: hours, days: sup?.daily ?? [])
+            if let report, let hours = report.hourly, !hours.isEmpty {
+                HourlyForecastSection(hours: hours, report: report)
             }
 
             // 多天预报
-            if let days = sup?.daily, !days.isEmpty {
+            if let days = report?.daily, !days.isEmpty {
                 DailyForecastSection(days: days)
             }
 
             // 空气质量
-            if let air = sup?.air {
+            if let air = report?.air {
                 Section("空气质量") {
                     airHeader(air)
                     infoRow("首要污染物", air.primaryPollutant ?? "无")
@@ -147,8 +147,8 @@ struct ContentView: View {
                 }
 
                 // 未来 24 小时 / 3 天 AQI（WeatherKit 均无此数据）
-                let hours = sup?.airHourly ?? []
-                let days = sup?.airDaily ?? []
+                let hours = report?.airHourly ?? []
+                let days = report?.airDaily ?? []
                 if !hours.isEmpty || !days.isEmpty {
                     Section("空气质量预报") {
                         if !hours.isEmpty {
@@ -162,7 +162,7 @@ struct ContentView: View {
             }
 
             // 生活指数
-            if let indices = sup?.indices {
+            if let indices = report?.indices {
                 LifeIndicesSection(indices: indices)
             }
 
@@ -228,10 +228,18 @@ struct ContentView: View {
                 }
                 // 后台是分项失败的：某项失败时对应 Section 直接消失，
                 // 不说一声用户无从判断是「没有这项数据」还是「拉取失败」。
-                let failed = failedSupplementNames(sup)
+                let failed = failedResourceNames(report)
                 if !failed.isEmpty {
                     Label("\(failed.joined(separator: "、"))暂时获取失败，下拉可重试",
                           systemImage: "exclamationmark.triangle")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                // 兜底数据源的能力比主数据源窄：空气质量与生活指数整块消失。
+                // 同样要说一声，否则看起来像 App 坏了。
+                if report?.source == .weatherKit {
+                    Label("主数据源不可用，当前为 Apple 天气兜底，部分数据缺失",
+                          systemImage: "arrow.triangle.2.circlepath")
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                 }
@@ -241,17 +249,25 @@ struct ContentView: View {
     }
 
     /// 后台 `errors` 里非 nil 的项即为失败项，映射成中文名用于提示。
-    /// 后台保证六个 key 都在，成功时值为 nil。
-    private func failedSupplementNames(_ sup: WeatherSupplement?) -> [String] {
-        guard let errors = sup?.errors else { return [] }
-        let names = ["air": "空气质量",
-                     "airDaily": "空气质量预报",
-                     "airHourly": "逐小时空气质量",
+    ///
+    /// ⚠️ 键必须用后台的**资源名**（连字符形式）。此前这里写的是 airDaily /
+    /// airHourly 的驼峰形式，而后台给的是 "air-daily" / "air-hourly" ——
+    /// 永远匹配不上，那两项失败了也不会提示。驼峰只存在于 Swift 侧的
+    /// CodingKeys 映射后，errors 字典是原样的 JSON 键。
+    private func failedResourceNames(_ report: WeatherReport?) -> [String] {
+        guard let errors = report?.errors else { return [] }
+        let names = ["now": "实时天气",
+                     "daily": "多天预报",
+                     "hourly": "逐小时预报",
+                     "air": "空气质量",
+                     "air-daily": "空气质量预报",
+                     "air-hourly": "逐小时空气质量",
                      "indices": "生活指数",
                      "minutely": "分钟级降水",
                      "alerts": "气象预警"]
         // 按固定顺序输出，避免字典顺序导致提示文案每次刷新都在跳
-        return ["air", "airDaily", "airHourly", "minutely", "indices", "alerts"]
+        return ["now", "daily", "hourly", "air", "air-daily", "air-hourly",
+                "minutely", "indices", "alerts"]
             .filter { (errors[$0] ?? nil) != nil }
             .compactMap { names[$0] }
     }

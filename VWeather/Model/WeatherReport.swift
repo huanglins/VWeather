@@ -1,25 +1,32 @@
 //
-//  WeatherSupplement.swift
+//  WeatherReport.swift
 //  VWeather
 //
-//  天气补充数据（空气质量 / 生活指数 / 分钟降水 / 气象预警）。
-//  数据源为 vapi 后台 GET /v1/weather?resources=...
+//  App 的天气模型 —— 与数据源无关。
 //
-//  后台是与数据源无关的抽象层，本模型对齐的是它的**中立 schema**，
-//  不含任何平台专有字段 —— 后台把和风换成别家时，这里零改动。
+//  两个来源都归一化到这里：
+//    · vapi 后台（主）  GET /v1/weather?resources=...，本身就是中立 schema
+//    · WeatherKit（兜底）后台不可用时端上直接取，由 VHLAppleWeather 映射进来
 //
-//  与 `WeatherDisplay` 平级、不合并：`WeatherDisplay` 是端上 WeatherKit 的投影，
-//  本模型来自后台。混在一起会让「哪个字段来自哪个源」不可知，
-//  也会让「一方失败另一方仍可用」难以表达。
+//  只有 `source` 记得住数据来自谁，其余字段一视同仁。UI 不该按来源分支，
+//  归因除外 —— 那是法律要求，不是展示逻辑。
+//
+//  ⚠️ 曾经这里叫 WeatherSupplement，与「WeatherKit 的投影」WeatherDisplay 并存，
+//     各存一列。那是双源时代的产物：后台只补 AQI 等四项，基础天气走 WeatherKit。
+//     现在基础天气也走后台，「补充」的说法就名不副实了，两个模型也没有理由分开。
 //
 
 import Foundation
 
-// MARK: - 基础天气
+// MARK: - 单位约定
 //
-// 单位由后台的中立 schema 保证：温度 ℃、风速 km/h、气压 hPa、能见度 km、
+// 温度 ℃、风速 km/h、气压 hPa、能见度 km、降水 mm、
 // 湿度与概率 0-100、风向 0-360 度、时间 ISO8601 带时区。
-// 各数据源的原始表示差异极大（有的给字符串、有的湿度是小数），后台已抹平。
+//
+// 后台的中立 schema 就是按这套抹平的，直接对齐即可。
+// WeatherKit 那条路要自己换算 —— 它给的是 Measurement，读 .value 拿到的单位
+// 跟随 locale，在美区设备上会变成 °F / mph。必须显式 converted(to:)，
+// 见 VHLAppleWeather 的映射。
 
 /// 实时天气
 struct WeatherNow: Codable {
@@ -40,6 +47,8 @@ struct WeatherNow: Codable {
     var dewPoint: Double?
     var cloudCover: Double?         // 0-100
     var precipitation: Double?      // mm
+
+    init() {}
 }
 
 /// 逐日预报的一天
@@ -69,6 +78,8 @@ struct WeatherDay: Codable, Identifiable {
     var moonPhase: String?
 
     var id: String { date ?? UUID().uuidString }
+
+    init() {}
 }
 
 /// 逐小时预报的一小时
@@ -93,6 +104,8 @@ struct WeatherHour: Codable, Identifiable {
     var visibility: Double?
 
     var id: String { time ?? UUID().uuidString }
+
+    init() {}
 }
 
 // MARK: - 补充数据
@@ -159,11 +172,15 @@ struct MinutelyPrecip: Codable {
     var interval: Double?
     var items: [MinutelyItem]?
 
+    init() {}
+
     struct MinutelyItem: Codable {
         var time: String?
         var precipitation: Double?   // mm
         var type: String?            // rain / snow
         var chance: Double?          // 0-100
+
+        init() {}
     }
 }
 
@@ -188,20 +205,34 @@ struct WeatherAlertInfo: Codable, Identifiable {
     var instruction: String?    // 防御指引
     var sender: String?         // 合规：发布单位，必须展示
     var pubTime: String?        // 合规：发布时间，必须展示
+
+    init() {}
 }
 
-/// 后台聚合接口 GET /v1/weather?resources=... 的响应
-struct WeatherSupplement: Codable {
-    var status: Int?
-    var location: SupplementLocation?
+// MARK: - 报告
+
+/// 数据来源。用于归因展示与排查，UI 的其它部分不该按它分支。
+enum WeatherSource: String, Codable {
+    case backend        // vapi 后台（当前由和风供数，可换）
+    case weatherKit     // 端上 Apple WeatherKit（后台不可用时的兜底）
+}
+
+/// 一份天气报告。两个数据源都归一化成它。
+///
+/// 所有字段可选：数据源的能力不同（WeatherKit 没有 AQI 与生活指数，
+/// 中国大陆也没有分钟降水），拿不到就是 nil，UI 按「有才显示」处理。
+struct WeatherReport: Codable {
+    var source: WeatherSource = .backend
     var updatedAt: String?
+    var location: ReportLocation?
     var data: ResourceData?
+
     /// 各资源实际由谁供数（后台换源/降级时会变）。仅供排查，UI 不该依赖。
     var providers: [String: String?]?
     /// 各资源的失败原因。某项为 nil 表示成功。
     var errors: [String: String?]?
 
-    struct SupplementLocation: Codable {
+    struct ReportLocation: Codable {
         var lng: Double?
         var lat: Double?
         var name: String?
@@ -226,6 +257,31 @@ struct WeatherSupplement: Codable {
             case airHourly = "air-hourly"
             case indices, minutely, alerts
         }
+
+        init() {}
+    }
+
+    init() {}
+
+    init(source: WeatherSource, updatedAt: String? = nil, data: ResourceData) {
+        self.source = source
+        self.updatedAt = updatedAt
+        self.data = data
+    }
+
+    /// 后台的响应里没有 `source` —— 那是本地概念，不是接口字段。
+    /// 缺省即 .backend；WeatherKit 那条路由 VHLAppleWeather 显式构造。
+    ///
+    /// 不能用编译器合成的实现：合成的 init(from:) 会因为缺 `source` 键直接抛错，
+    /// 属性上的默认值对它不生效。
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        source = try c.decodeIfPresent(WeatherSource.self, forKey: .source) ?? .backend
+        updatedAt = try c.decodeIfPresent(String.self, forKey: .updatedAt)
+        location = try c.decodeIfPresent(ReportLocation.self, forKey: .location)
+        data = try c.decodeIfPresent(ResourceData.self, forKey: .data)
+        providers = try c.decodeIfPresent([String: String?].self, forKey: .providers)
+        errors = try c.decodeIfPresent([String: String?].self, forKey: .errors)
     }
 
     // MARK: - 便捷访问（让调用方不必层层解包）
@@ -240,10 +296,70 @@ struct WeatherSupplement: Codable {
     var minutely: MinutelyPrecip? { data?.minutely }
     var alerts: [WeatherAlertInfo]? { data?.alerts }
 
-    /// 是否一项数据都没有（后台整体不可用时用于判断是否值得入库）
+    /// 是否一项数据都没有。
+    ///
+    /// 用途有二：
+    ///   · 后台返回 200 但各项全空时，视同失败 —— 该降级到 WeatherKit，
+    ///     而不是把一屏空白当成「成功」
+    ///   · 旧版本的 weatherJSON 存的是 WeatherDisplay，字段名全不匹配，
+    ///     解码会得到一个各项皆空的报告。它同样该被当作「没有数据」。
     var isEmpty: Bool {
         now == nil && air == nil && minutely == nil
             && (daily?.isEmpty ?? true) && (hourly?.isEmpty ?? true)
             && (indices?.isEmpty ?? true) && (alerts?.isEmpty ?? true)
+    }
+}
+
+// MARK: - 时间与昼夜
+//
+// 放在模型层而非视图层：时间格式是数据的属性，Widget 与主 App 都要用，
+// 而视图文件只在主 App target 里。
+
+enum WeatherTime {
+    /// 解析中立 schema 的时间。
+    ///
+    /// ⚠️ 上游的时间**不带秒**（`2026-07-16T04:59+08:00`），而
+    /// `ISO8601DateFormatter` 的 `.withInternetDateTime` 要求有秒 —— 直接用它会解析失败。
+    /// 这个坑踩过：解析失败被静默兜住，屏幕上显示的是原始机器格式，看着像「没渲染」。
+    static func date(_ raw: String?) -> Date? {
+        guard let raw else { return nil }
+        if let d = noSeconds.date(from: raw) { return d }
+        // 兜底：万一哪个数据源带上了秒
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withColonSeparatorInTimeZone]
+        return iso.date(from: raw)
+    }
+
+    private static let noSeconds: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd'T'HH:mmZZZZZ"
+        return f
+    }()
+}
+
+extension WeatherDay {
+    /// 该时刻是否在本日的日落后 / 日出前。日出日落缺失时返回 nil，由调用方决定怎么办。
+    func isNight(at t: Date) -> Bool? {
+        guard let rise = WeatherTime.date(sunrise), let set = WeatherTime.date(sunset) else {
+            return nil
+        }
+        return t < rise || t >= set
+    }
+}
+
+extension WeatherReport {
+    /// 该时刻是否为夜间，按当天的日出日落判断。
+    ///
+    /// 找不到对应日期的数据时回退到「18 点—6 点」—— 高纬度会不准，
+    /// 但总好过让所有时刻共用同一个昼夜状态（那会让凌晨挂着太阳）。
+    func isNight(at t: Date) -> Bool {
+        let day = daily?.first { d in
+            guard let s = WeatherTime.date(d.sunrise) else { return false }
+            return Calendar.current.isDate(s, inSameDayAs: t)
+        }
+        if let night = day?.isNight(at: t) { return night }
+        let h = Calendar.current.component(.hour, from: t)
+        return h < 6 || h >= 18
     }
 }

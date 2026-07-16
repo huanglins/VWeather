@@ -32,7 +32,7 @@ struct CityListView: View {
                                     }
                                     Text(city.displayName).foregroundStyle(.primary)
                                     Spacer()
-                                    if let temp = CityWeatherManager.manager.cachedSnapshot(for: city)?.weather?.temperature {
+                                    if let temp = CityWeatherManager.manager.cachedSnapshot(for: city)?.weather?.now?.temperature {
                                         Text(AppSettings.shared.tempText(temp)).foregroundStyle(.secondary)
                                     }
                                 }

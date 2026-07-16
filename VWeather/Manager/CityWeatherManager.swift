@@ -3,23 +3,23 @@
 //  VWeather
 //
 //  城市天气 + 日月快照：读缓存（秒显）与刷新入库。
-//  复用 VHLAppleWeather（WeatherKit）与 VHLSunMoonManager（SunKit/MoonKit）。
-//  补充数据（AQI / 生活指数 / 分钟降水 / 预警）走 VHLWeatherAPI（vapi 后台代理和风）。
+//
+//  天气走 VHLWeatherAPI（vapi 后台），失败或没数据时由 VHLAppleWeather（WeatherKit）兜底。
+//  日月走 VHLSunMoonManager（SunKit/MoonKit），本地算，不依赖网络。
 //
 
 import Foundation
 import CoreLocation
 
 /// 一次刷新的结果。
-///
-/// 天气（WeatherKit）与补充数据（vapi）来自两个独立数据源，成败互不影响：
-/// 任一方失败，另一方仍照常入库并展示。故错误分开记录，而不是笼统给一个。
 struct WeatherRefreshResult {
     var snapshot: CityWeatherSnapshot?
-    /// WeatherKit 的失败原因，nil 表示成功
+    /// 天气的失败原因，nil 表示成功。两个数据源都失败时才有值。
     var weatherError: Error?
-    /// 补充数据的失败原因，nil 表示成功。补充数据失败不影响天气展示。
-    var supplementError: Error?
+    /// 是否用了兜底数据源。UI 可据此提示「数据可能不全」——
+    /// WeatherKit 没有空气质量与生活指数，那几个 Section 会整块消失，
+    /// 不说明的话看起来像 App 出了问题。
+    var usedFallback: Bool = false
 }
 
 /// 选中城市 cityKey 的存储 key（App Group UserDefaults 共享；主 App 与小组件共用）
@@ -45,7 +45,7 @@ class CityWeatherManager {
         return CityModel.objects(whereSQL: "isDeleted != 1", order: .ASC("sortOrder")).first
     }
 
-    /// 天气自动刷新的最小间隔。此间隔内的**自动**请求直接复用缓存，避免频繁请求 WeatherKit。
+    /// 天气自动刷新的最小间隔。此间隔内的**自动**请求直接复用缓存。
     /// 用户下拉刷新、当前位置坐标变更等场景传 `force: true` 可绕过。
     static let minRefreshInterval: TimeInterval = 30 * 60   // 30 分钟
 
@@ -54,87 +54,48 @@ class CityWeatherManager {
     /// - Returns: 最新快照；失败时为上次的缓存（可能为 nil）。
     ///            需要知道失败原因时用 `refreshDetailed(for:force:)`。
     @discardableResult
-    func refresh(for city: CityModel,
-                 force: Bool = false,
-                 includeSupplement: Bool = true) async -> CityWeatherSnapshot? {
-        await refreshDetailed(for: city, force: force, includeSupplement: includeSupplement).snapshot
+    func refresh(for city: CityModel, force: Bool = false) async -> CityWeatherSnapshot? {
+        await refreshDetailed(for: city, force: force).snapshot
     }
 
-    /// 同 `refresh`，但一并返回两个数据源各自的错误，供重试与 UI 提示使用。
-    /// - Parameter includeSupplement: 是否拉取补充数据。Widget 只显示温度与天气现象，
-    ///   传 false 可省掉一次网络请求与和风配额。
+    /// 同 `refresh`，但一并返回失败原因与是否降级，供重试与 UI 提示使用。
     @discardableResult
-    func refreshDetailed(for city: CityModel,
-                         force: Bool = false,
-                         includeSupplement: Bool = true) async -> WeatherRefreshResult {
+    func refreshDetailed(for city: CityModel, force: Bool = false) async -> WeatherRefreshResult {
         guard let key = city.cityKey else { return WeatherRefreshResult() }
 
         let cached = cachedSnapshot(for: city)
 
-        // 两个数据源各自独立节流。
-        // 天气：缓存无天气数据时（如上次失败）不受节流，立即重试。
-        let needWeather = force
-            || cached?.weatherJSON == nil
-            || Self.isStale(cached?.updateDate)
-        // 补充数据：按 supplementDate 节流。失败也会写该时间，故后台故障时按 30 分钟退避。
-        let needSupplement = includeSupplement
-            && (force || Self.isStale(cached?.supplementDate))
-
-        if !needWeather, !needSupplement, let cached {
+        // 缓存里没有天气时（上次失败，或旧版本遗留的 WeatherDisplay 解不出来）
+        // 不受节流，立即重试。
+        let needWeather = force || cached?.weather == nil || Self.isStale(cached?.updateDate)
+        if !needWeather, let cached {
             return WeatherRefreshResult(snapshot: cached)
         }
 
         let location = city.location
+        let (report, error) = await Self.fetchReport(location)
 
-        // 两个数据源并发拉取：WeatherKit 走本地框架，补充数据走网络，互不阻塞。
-        // 各自吞掉异常转成 Result，任一方失败不影响另一方入库。
-        async let weatherTask = needWeather ? Self.fetchWeather(location) : nil
-        async let supplementTask = needSupplement ? Self.fetchSupplement(location) : nil
-        let (weatherResult, supplementResult) = await (weatherTask, supplementTask)
-
-        // 组装与入库只做一次：两条链路各自 saveOrUpdate 会 last-write-wins 互相覆盖
         var snap = cached ?? CityWeatherSnapshot()
         snap.cityKey = key
 
-        // 各模型整体 JSON 存储：新增展示字段时无需在此逐一赋值。
-        // 失败时保留上次的值，好过把已有数据清成 nil。
-        var weatherError: Error?
-        if let weatherResult {
-            switch weatherResult {
-            case .success(let model):
-                if let model {
-                    snap.weatherJSON = CityWeatherSnapshot.encodeJSON(WeatherDisplay(from: model))
-                }
-            case .failure(let error):
-                weatherError = error
-                print("[CityWeatherManager] 天气请求失败 city=\(key): \(error.localizedDescription)")
-            }
-
-            // 日月（本地计算）。跟随天气一起更新
-            let sun = VHLSunMoonManager.manager.sunInfo(location: location)
-            let moon = VHLSunMoonManager.manager.moonInfo(location: location)
-            snap.sunJSON = CityWeatherSnapshot.encodeJSON(sun)
-            snap.moonJSON = CityWeatherSnapshot.encodeJSON(moon)
-            snap.updateDate = Date()
+        // 失败时保留上次的值，好过把已有数据清成 nil ——
+        // 离线时展示「30 分钟前的天气」远好过展示空白。
+        if let report {
+            snap.weatherJSON = CityWeatherSnapshot.encodeJSON(report)
         }
 
-        var supplementError: Error?
-        if let supplementResult {
-            switch supplementResult {
-            case .success(let model):
-                snap.supplementJSON = CityWeatherSnapshot.encodeJSON(model)
-            case .failure(let error):
-                supplementError = error
-                print("[CityWeatherManager] 补充数据请求失败 city=\(key): \(error.localizedDescription)")
-            }
-            // 成功失败都记，失败时用于退避
-            snap.supplementDate = Date()
-        }
+        // 日月本地算，不依赖网络，故天气失败它也照常更新
+        let sun = VHLSunMoonManager.manager.sunInfo(location: location)
+        let moon = VHLSunMoonManager.manager.moonInfo(location: location)
+        snap.sunJSON = CityWeatherSnapshot.encodeJSON(sun)
+        snap.moonJSON = CityWeatherSnapshot.encodeJSON(moon)
+        // 成功失败都记，失败时用于退避
+        snap.updateDate = Date()
 
         snap.saveOrUpdate()
         return WeatherRefreshResult(snapshot: snap,
-                                    weatherError: weatherError,
-                                    supplementError: supplementError)
+                                    weatherError: error,
+                                    usedFallback: report?.source == .weatherKit)
     }
 
     /// 距上次更新是否已超过节流间隔（未更新过视为过期）
@@ -143,21 +104,50 @@ class CityWeatherManager {
         return Date().timeIntervalSince(date) >= minRefreshInterval
     }
 
-    // MARK: - 各数据源取数（异常转 Result，避免任一方抛出中断另一方）
+    // MARK: - 取数：后台为主，WeatherKit 兜底
 
-    private static func fetchWeather(_ location: CLLocation) async -> Result<VHLWeatherModel?, Error> {
+    /// 返回 (报告, 错误)。两者不会同时为 nil：
+    /// 拿到任一数据源的数据就返回它，全都失败才返回错误。
+    private static func fetchReport(_ location: CLLocation) async -> (WeatherReport?, Error?) {
+        var primaryError: Error?
         do {
-            return .success(try await VHLAppleWeather.shared.getWeather(for: location))
+            let report = try await VHLWeatherAPI.shared.report(for: location)
+            // 后台返回 200 但各项全空 —— 视同失败。把一屏空白当成「成功」
+            // 会让兜底路径永远走不到，而用户看到的就是个坏掉的 App。
+            if !report.isEmpty {
+                return (report, nil)
+            }
+            primaryError = WeatherFetchError.emptyResponse
+            print("[CityWeatherManager] 后台返回空报告，转 WeatherKit 兜底")
         } catch {
-            return .failure(error)
+            primaryError = error
+            print("[CityWeatherManager] 后台天气失败，转 WeatherKit 兜底：\(error.localizedDescription)")
+        }
+
+        // 兜底：WeatherKit 是端上框架，没有网络也可能有缓存数据。
+        // 它没有空气质量/生活指数，中国大陆也没有分钟降水 —— 那几项会缺，
+        // 但基础天气能显示，比整屏空白强。
+        do {
+            let report = try await VHLAppleWeather.shared.report(for: location)
+            if !report.isEmpty {
+                return (report, nil)
+            }
+            return (nil, primaryError)
+        } catch {
+            print("[CityWeatherManager] WeatherKit 兜底也失败：\(error.localizedDescription)")
+            // 报主数据源的错：兜底是实现细节，用户要知道的是「天气没取到」，
+            // 而主数据源的失败原因通常更能说明问题。
+            return (nil, primaryError ?? error)
         }
     }
+}
 
-    private static func fetchSupplement(_ location: CLLocation) async -> Result<WeatherSupplement, Error> {
-        do {
-            return .success(try await VHLWeatherAPI.shared.supplement(for: location))
-        } catch {
-            return .failure(error)
+enum WeatherFetchError: LocalizedError {
+    case emptyResponse
+
+    var errorDescription: String? {
+        switch self {
+        case .emptyResponse: return "天气数据为空"
         }
     }
 }

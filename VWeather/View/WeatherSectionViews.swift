@@ -1,12 +1,13 @@
 //
-//  WeatherSupplementViews.swift
+//  WeatherSectionViews.swift
 //  VWeather
 //
-//  补充数据（vapi 后台代理和风）的展示：分钟级降水 / 生活指数 / 逐小时空气质量。
-//  与 ContentView 拆开：这三块自成一体，且 ContentView 已承担首页骨架与日月展示。
+//  首页各天气 Section：逐小时 / 多天 / 分钟降水 / 生活指数 / 逐小时空气质量。
+//  与 ContentView 拆开：这些自成一体，而 ContentView 已承担首页骨架与日月展示。
 //
-//  各 Section 都按「有数据才出现」组织——后台任一项失败只会让对应 Section 消失，
-//  不影响其它项（后台是分项失败的，见 WeatherSupplement.errors）。
+//  各 Section 都按「有数据才出现」组织——任一项缺失只会让对应 Section 消失，
+//  不影响其它项（后台是分项失败的，见 WeatherReport.errors；
+//  WeatherKit 兜底时空气质量与生活指数则整块没有）。
 //
 
 import Charts
@@ -35,12 +36,6 @@ enum QWeatherFormat {
     ///   - 东八区：`2026-07-15T17:00+08:00`（minutely）
     /// 故不能用 ISO8601DateFormatter（其 withInternetDateTime 要求有秒，会解析失败）。
     /// `ZZZZZ` 两种写法都能吃。
-    private static let parser: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "yyyy-MM-dd'T'HH:mmZZZZZ"
-        return f
-    }()
 
     /// 上游等级色是给「大色块 + 黑字」设计的，如「良」是纯黄 rgba(255,255,0)。
     /// 这种色画成细柱放在浅色卡片上几乎看不见（实测）。
@@ -64,14 +59,8 @@ enum QWeatherFormat {
         return 0.2126 * r + 0.7152 * g + 0.0722 * bl
     }
 
-    static func date(_ raw: String?) -> Date? {
-        guard let raw else { return nil }
-        if let date = parser.date(from: raw) { return date }
-        // 兜底：万一上游哪天带上了秒
-        let iso = ISO8601DateFormatter()
-        iso.formatOptions = [.withInternetDateTime, .withColonSeparatorInTimeZone]
-        return iso.date(from: raw)
-    }
+    /// 解析实现在模型层（WeatherTime）—— Widget 也要用，而视图文件只在主 App target。
+    static func date(_ raw: String?) -> Date? { WeatherTime.date(raw) }
 
     /// 日期 + 时间。解析失败时原样返回，好过显示 "--"
     /// （预警的发布时间是合规必需项，宁可显示原始串也不能吞掉）。
@@ -100,26 +89,13 @@ enum QWeatherFormat {
 /// 而逐小时是「扫一眼趋势」的信息，不需要逐条阅读。
 struct HourlyForecastSection: View {
     let hours: [WeatherHour]
-    /// 仅用于取每天的日出日落，好逐小时判断昼夜。
-    /// 跨越 24 小时必然跨昼夜，全部用同一个 isNight 会让凌晨挂着太阳。
-    let days: [WeatherDay]
+    /// 整份报告 —— 逐小时的昼夜要按当天的日出日落判断，那数据在 daily 里。
+    /// 跨越 24 小时必然跨昼夜，全部共用一个 isNight 会让凌晨挂着太阳。
+    let report: WeatherReport
 
-    /// 该时刻是否在日落后/日出前。
-    /// 无日出日落数据时回退到 18 点—6 点的粗略判断 —— 高纬度会不准，
-    /// 但总好过让所有小时共用当前的昼夜状态。
     private func isNight(_ hour: WeatherHour) -> Bool {
-        guard let t = QWeatherFormat.date(hour.time) else { return false }
-        let day = days.first { d in
-            guard let s = QWeatherFormat.date(d.sunrise) else { return false }
-            return Calendar.current.isDate(s, inSameDayAs: t)
-        }
-        if let day,
-           let sunrise = QWeatherFormat.date(day.sunrise),
-           let sunset = QWeatherFormat.date(day.sunset) {
-            return t < sunrise || t >= sunset
-        }
-        let h = Calendar.current.component(.hour, from: t)
-        return h < 6 || h >= 18
+        guard let t = WeatherTime.date(hour.time) else { return false }
+        return report.isNight(at: t)
     }
 
     var body: some View {

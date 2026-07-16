@@ -62,9 +62,14 @@ struct Provider: TimelineProvider {
         guard let city = CityWeatherManager.manager.selectedCity() else {
             return SimpleEntry(date: Date())
         }
-        // 不拉补充数据：widget 只显示温度/天气现象，省一次网络请求与和风配额
-        let snap = await CityWeatherManager.manager.refresh(for: city, includeSupplement: false)
-        return entry(city: city, weather: snap?.weather)
+        // 拉的是与主 App 相同的完整报告。
+        //
+        // 曾经这里传 includeSupplement: false 只拉 WeatherKit（端上、无配额），
+        // 结果是每 30 分钟把 updateDate 顶新，主 App 每次都命中节流、
+        // 补充数据永远拉不到。让两边取同一份数据，这类饥饿就不存在了。
+        // 代价是每次 widget 刷新会多消耗几次上游配额，额度足够，值得。
+        let snap = await CityWeatherManager.manager.refresh(for: city)
+        return entry(city: city, report: snap?.weather)
     }
 
     /// 仅读缓存（用于快照占位）
@@ -72,15 +77,19 @@ struct Provider: TimelineProvider {
         guard let city = CityWeatherManager.manager.selectedCity() else {
             return SimpleEntry(date: Date())
         }
-        return entry(city: city, weather: CityWeatherManager.manager.cachedSnapshot(for: city)?.weather)
+        return entry(city: city, report: CityWeatherManager.manager.cachedSnapshot(for: city)?.weather)
     }
 
-    private func entry(city: CityModel, weather: WeatherDisplay?) -> SimpleEntry {
-        SimpleEntry(date: Date(),
-                    cityName: city.displayName,
-                    temperature: weather?.temperature,
-                    conditionText: weather?.conditionText ?? "",
-                    symbol: weather?.symbol ?? "")
+    private func entry(city: CityModel, report: WeatherReport?) -> SimpleEntry {
+        let now = report?.now
+        // 图标此前直接用 WeatherKit 的 symbolName，换数据源后没有这个字段了，
+        // 由中立天况枚举映射。昼夜取当天的日出日落。
+        let isNight = report?.isNight(at: Date()) ?? false
+        return SimpleEntry(date: Date(),
+                           cityName: city.displayName,
+                           temperature: now?.temperature,
+                           conditionText: now?.conditionText ?? "",
+                           symbol: (now?.condition ?? .unknown).symbol(isNight: isNight))
     }
 }
 
