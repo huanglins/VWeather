@@ -20,6 +20,8 @@
 		BF278F512C738AAE00041FD4 /* UITools.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF278F412C738AAE00041FD4 /* UITools.swift */; };
 		BF278F522C738AAE00041FD4 /* WeatherManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF278F3D2C738AAE00041FD4 /* WeatherManager.swift */; };
 		BF72F7A53004F9FE006556E7 /* VWeather.storekit in Resources */ = {isa = PBXBuildFile; fileRef = BF72F7A43004F9FE006556E7 /* VWeather.storekit */; };
+		BF97F3953009318B0048D73F /* CityWeatherCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF97F3943009318B0048D73F /* CityWeatherCard.swift */; };
+		BF97F3963009318B0048D73F /* CityWeatherCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF97F3943009318B0048D73F /* CityWeatherCard.swift */; };
 		BFD4AA302C72DBE60001C5D6 /* VWeatherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFD4AA2F2C72DBE60001C5D6 /* VWeatherApp.swift */; };
 		BFD4AA322C72DBE60001C5D6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFD4AA312C72DBE60001C5D6 /* ContentView.swift */; };
 		BFD4AA342C72DBE70001C5D6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BFD4AA332C72DBE70001C5D6 /* Assets.xcassets */; };
@@ -125,8 +127,6 @@
 		FADE00000000000000DD0200 /* VHLAppleWeather+Report.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000DD0001 /* VHLAppleWeather+Report.swift */; };
 		FADE00000000000000EE0100 /* WeatherTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000EE0001 /* WeatherTheme.swift */; };
 		FADE00000000000000EE0200 /* WeatherTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000EE0001 /* WeatherTheme.swift */; };
-		FADE00000000000000F10100 /* CityWeatherCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000F10001 /* CityWeatherCard.swift */; };
-		FADE00000000000000F10200 /* CityWeatherCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000F10001 /* CityWeatherCard.swift */; };
 		FADE00000000000000F20100 /* SelectCityIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000F20001 /* SelectCityIntent.swift */; };
 		FADE00000000000000F20200 /* SelectCityIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000F20001 /* SelectCityIntent.swift */; };
 		FADE00000000000000F30200 /* CityWeatherWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000F30001 /* CityWeatherWidget.swift */; };
@@ -171,6 +171,7 @@
 		BF278F442C738AAE00041FD4 /* VHLLocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VHLLocationManager.swift; sourceTree = "<group>"; };
 		BF278F452C738AAE00041FD4 /* VHLNetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VHLNetworkMonitor.swift; sourceTree = "<group>"; };
 		BF72F7A43004F9FE006556E7 /* VWeather.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = VWeather.storekit; sourceTree = "<group>"; };
+		BF97F3943009318B0048D73F /* CityWeatherCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityWeatherCard.swift; sourceTree = "<group>"; };
 		BFD4AA2C2C72DBE60001C5D6 /* VWeather.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VWeather.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BFD4AA2F2C72DBE60001C5D6 /* VWeatherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VWeatherApp.swift; sourceTree = "<group>"; };
 		BFD4AA312C72DBE60001C5D6 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -255,7 +256,6 @@
 		FADE00000000000000CC0001 /* VWCondition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VWCondition.swift; sourceTree = "<group>"; };
 		FADE00000000000000DD0001 /* VHLAppleWeather+Report.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "VHLAppleWeather+Report.swift"; sourceTree = "<group>"; };
 		FADE00000000000000EE0001 /* WeatherTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherTheme.swift; sourceTree = "<group>"; };
-		FADE00000000000000F10001 /* CityWeatherCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityWeatherCard.swift; sourceTree = "<group>"; };
 		FADE00000000000000F20001 /* SelectCityIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectCityIntent.swift; sourceTree = "<group>"; };
 		FADE00000000000000F30001 /* CityWeatherWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityWeatherWidget.swift; sourceTree = "<group>"; };
 		FADE00000000000000F40001 /* SunEventWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SunEventWidget.swift; sourceTree = "<group>"; };
@@ -360,14 +360,10 @@
 		BF72F76A3004B486006556E7 /* View */ = {
 			isa = PBXGroup;
 			children = (
-				FADE0000000000000000111C /* SettingsView.swift */,
-				FADE0000000000000000010E /* CityListView.swift */,
-				FADE0000000000000000010F /* CitySearchView.swift */,
+				BFDE2225300930F100D9D1F1 /* Weather */,
+				BFDE22263009310800D9D1F1 /* City */,
+				BF97F397300931990048D73F /* Setting */,
 				BFD4AA312C72DBE60001C5D6 /* ContentView.swift */,
-				FADE00000000000000AA0004 /* WeatherSectionViews.swift */,
-				FADE00000000000000F10001 /* CityWeatherCard.swift */,
-				FADE00000000000000EE0001 /* WeatherTheme.swift */,
-				FADE00000000000000AA0005 /* AttributionView.swift */,
 			);
 			path = View;
 			sourceTree = "<group>";
@@ -414,6 +410,15 @@
 				FADE00000000000000F20001 /* SelectCityIntent.swift */,
 			);
 			path = Intent;
+			sourceTree = "<group>";
+		};
+		BF97F397300931990048D73F /* Setting */ = {
+			isa = PBXGroup;
+			children = (
+				FADE0000000000000000111C /* SettingsView.swift */,
+				FADE00000000000000AA0005 /* AttributionView.swift */,
+			);
+			path = Setting;
 			sourceTree = "<group>";
 		};
 		BFD4AA232C72DBE60001C5D6 = {
@@ -537,6 +542,25 @@
 				BFD4AACC2C72E1670001C5D6 /* WidgetConfiguration+VHL.swift */,
 			);
 			path = Categorys;
+			sourceTree = "<group>";
+		};
+		BFDE2225300930F100D9D1F1 /* Weather */ = {
+			isa = PBXGroup;
+			children = (
+				FADE00000000000000EE0001 /* WeatherTheme.swift */,
+				FADE00000000000000AA0004 /* WeatherSectionViews.swift */,
+			);
+			path = Weather;
+			sourceTree = "<group>";
+		};
+		BFDE22263009310800D9D1F1 /* City */ = {
+			isa = PBXGroup;
+			children = (
+				BF97F3943009318B0048D73F /* CityWeatherCard.swift */,
+				FADE0000000000000000010E /* CityListView.swift */,
+				FADE0000000000000000010F /* CitySearchView.swift */,
+			);
+			path = City;
 			sourceTree = "<group>";
 		};
 		FADE00000000000000000301 /* VHLSQLite */ = {
@@ -891,7 +915,7 @@
 				BFD4AA322C72DBE60001C5D6 /* ContentView.swift in Sources */,
 				FADE00000000000000AA0014 /* WeatherSectionViews.swift in Sources */,
 				FADE00000000000000F20100 /* SelectCityIntent.swift in Sources */,
-				FADE00000000000000F10100 /* CityWeatherCard.swift in Sources */,
+				BF97F3953009318B0048D73F /* CityWeatherCard.swift in Sources */,
 				FADE00000000000000EE0100 /* WeatherTheme.swift in Sources */,
 				FADE00000000000000AA0015 /* AttributionView.swift in Sources */,
 				BFD4AAB92C72E10E0001C5D6 /* AppDelegate.swift in Sources */,
@@ -930,7 +954,6 @@
 				FADE00000000000000F20200 /* SelectCityIntent.swift in Sources */,
 				FADE0000000000000000122B /* AppSettings.swift in Sources */,
 				FADE00000000000000EE0200 /* WeatherTheme.swift in Sources */,
-				FADE00000000000000F10200 /* CityWeatherCard.swift in Sources */,
 				FADE00000000000000CC0200 /* VWCondition.swift in Sources */,
 				FADE00000000000000AA0022 /* VHLHTTP.swift in Sources */,
 				FADE00000000000000AA0023 /* VHLWeatherAPI.swift in Sources */,
@@ -947,6 +970,7 @@
 				BF278F472C738AAE00041FD4 /* VHLLocationManager.swift in Sources */,
 				BF278F482C738AAE00041FD4 /* VHLAppleWeather.swift in Sources */,
 				FADE00000000000000DD0200 /* VHLAppleWeather+Report.swift in Sources */,
+				BF97F3963009318B0048D73F /* CityWeatherCard.swift in Sources */,
 				BF278F492C738AAE00041FD4 /* VHLNetworkMonitor.swift in Sources */,
 				BF278F4A2C738AAE00041FD4 /* UITools.swift in Sources */,
 				BF278F4B2C738AAE00041FD4 /* WeatherManager.swift in Sources */,
@@ -1107,6 +1131,7 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = VWeather/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "云雾";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "用于获取当前位置天气信息";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "用于获取当前位置天气信息";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -1141,6 +1166,7 @@
 				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = VWeather/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "云雾";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "用于获取当前位置天气信息";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "用于获取当前位置天气信息";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;

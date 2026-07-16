@@ -66,6 +66,7 @@ struct ContentView: View {
                 }
             }
             .tint(.white)
+            .environment(\.colorScheme, .dark)
             .sheet(isPresented: $showCityList, onDismiss: reload) {
                 CityListView()
             }
