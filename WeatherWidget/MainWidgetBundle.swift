@@ -11,6 +11,8 @@ import SwiftUI
 @main
 struct MainWidgetBundle: WidgetBundle {
     var body: some Widget {
+        CityWeatherWidget()
+        SunEventWidget()
         WeatherWidget()
         // WeatherWidgetLiveActivity()
     }

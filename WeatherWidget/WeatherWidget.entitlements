@@ -7,6 +7,12 @@
 	<key>com.apple.security.application-groups</key>
 	<array>
 		<string>group.cn.vincents.dev</string>
+		<!-- 数据库在这个组里（DBManager.DB_GROUP）。少了它，Widget 进程
+		     containerURL(forSecurityApplicationGroupIdentifier:) 返回 nil，
+		     DBManager 会**静默**回退到自己沙盒的 Documents —— 读写的是另一个库，
+		     城市列表和天气快照全都读不到。
+		     模拟器对 App Group 不严格，这个缺失在模拟器上看不出来，只在真机暴露。 -->
+		<string>group.cn.vincents.weather</string>
 	</array>
 </dict>
 </plist>

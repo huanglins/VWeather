@@ -52,4 +52,15 @@ struct CityModel: VHLSQLiteObject {
     static func makeKey(lat: Double, lng: Double) -> String {
         String(format: "%.4f,%.4f", lat, lng)
     }
+
+    /// 「当前位置」城市的**稳定主键**。
+    ///
+    /// ⚠️ 不能用坐标串（makeKey）当它的主键。普通城市不会动，坐标即稳定标识；
+    /// 但「当前位置」会随用户移动，坐标一变主键就变，只能删旧建新，于是所有以
+    /// cityKey 关联的下游（selectedCityKey、天气快照、小组件配置）全部悬空。
+    /// 用固定哨兵当主键，坐标变化时**原地更新**这条记录，主键不动，下游引用天然有效。
+    ///
+    /// 前后缀下划线，避免与真实坐标串主键相撞。与小组件配置里的 `kWidgetCurrentLocation`
+    /// 取同一字面量（语义不同但值一致，互不干扰）。
+    static let currentLocationKey = "__current_location__"
 }

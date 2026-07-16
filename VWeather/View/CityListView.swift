@@ -9,10 +9,13 @@
 //  实现手势与动画。把 List 的背景与分隔线关掉即可，代价比重写手势小得多。
 //
 
+import CoreLocation
 import SwiftUI
+import UIKit
 
 struct CityListView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
 
     @State private var cities: [CityModel] = []
     @State private var showCitySearch = false
@@ -23,18 +26,30 @@ struct CityListView: View {
     /// 增量更新某一张卡。
     @State private var snapshots: [String: CityWeatherSnapshot] = [:]
 
+    /// 定位授权状态。存 state 而不是每次渲染都查 —— 从设置页回来要能刷新，
+    /// 靠 scenePhase 变化重读。
+    @State private var authStatus = VHLLocationManager.authorizationStatus()
+
     var body: some View {
         NavigationStack {
             ZStack {
                 Color.black.ignoresSafeArea()
 
-                if cities.isEmpty {
+                if cities.isEmpty && !showLocationPrompt {
                     ContentUnavailableView("还没有添加城市",
                                            systemImage: "location.slash",
                                            description: Text("点击下方搜索添加"))
                         .foregroundStyle(.white)
                 } else {
                     List {
+                        // 定位没开时，「当前位置」那张卡根本不会存在 ——
+                        // 列表里只是少一行，用户无从知道为什么。放个提示占住它的位置。
+                        if showLocationPrompt {
+                            locationPrompt
+                                .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                        }
                         ForEach(cities, id: \.cityKey) { city in
                             Button { select(city) } label: {
                                 CityCard(city: city,
@@ -44,6 +59,10 @@ struct CityListView: View {
                             .listRowInsets(EdgeInsets(top: 6, leading: 16, bottom: 6, trailing: 16))
                             .listRowBackground(Color.clear)
                             .listRowSeparator(.hidden)
+                            // 当前位置不可删（CityManager.deleteCity 本来就会拒绝）。
+                            // 不禁掉的话左滑还是划得出删除按钮，点了却毫无反应 ——
+                            // 有入口而无效，比没入口更让人困惑。
+                            .deleteDisabled(city.isCurrentLocation == true)
                         }
                         .onDelete(perform: deleteRows)
                     }
@@ -76,9 +95,78 @@ struct CityListView: View {
             .onAppear {
                 cities = CityManager.manager.allCities()
                 loadSnapshots()
+                authStatus = VHLLocationManager.authorizationStatus()
+                refreshCurrentLocationIfNeeded()
             }
             .task { await fillMissing() }
+            // 用户可能去设置里改了权限再回来，或刚在系统弹框里点了允许。
+            // 两种情况都不会自动重绘，得回前台时重读一次。
+            .onChange(of: scenePhase) { _, phase in
+                guard phase == .active else { return }
+                authStatus = VHLLocationManager.authorizationStatus()
+                refreshCurrentLocationIfNeeded()
+            }
         }
+    }
+
+    /// 定位不可用（拒绝 / 受限 / 还没问过）
+    private var locationDenied: Bool {
+        authStatus != .authorizedAlways && authStatus != .authorizedWhenInUse
+    }
+
+    /// 该不该显示定位提示。
+    ///
+    /// 判据是「有没有当前位置这张卡」，不是「权限给没给」——
+    /// 权限被撤销时，之前定位出来的城市卡还在（数据只是不再更新），
+    /// 光看权限的话会同时出现「定位权限未开启」和一张带定位图标的城市卡，
+    /// 自相矛盾。有卡就显示卡，没卡才提示。
+    private var showLocationPrompt: Bool {
+        locationDenied && !cities.contains { $0.isCurrentLocation == true }
+    }
+
+    /// 「当前位置」缺位时的提示卡。放在列表最前，占住它本该在的位置。
+    private var locationPrompt: some View {
+        Button {
+            if authStatus == .notDetermined {
+                // 还没问过：弹系统授权框，别一上来就把人踢去设置
+                VHLLocationManager.manager.locationManager.requestWhenInUseAuthorization()
+            } else {
+                // 明确拒绝过：系统不会再弹，只能去设置里改
+                openAppSettings()
+            }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "location.slash.fill")
+                    .font(.system(size: 20))
+                    .foregroundStyle(.white.opacity(0.7))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("当前位置")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.white)
+                    Text(authStatus == .notDetermined
+                         ? "点击开启定位，显示所在地天气"
+                         : "定位权限未开启，点击前往设置")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.6))
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(.white.opacity(0.4))
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.white.opacity(0.1)))
+            .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .stroke(.white.opacity(0.14), lineWidth: 0.5))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func openAppSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 
     /// 底部搜索栏。只是个入口 —— 点了打开原本的搜索页，
@@ -143,6 +231,25 @@ struct CityListView: View {
         }
     }
 
+    /// 有定位权限但「当前位置」城市不存在时，补建一个。
+    ///
+    /// 这个缺口不只是「刚点了允许」那一种：ContentView.firstLoad 只在
+    /// **一个城市都没有**时才去定位，所以只要库里还有别的城市，
+    /// 「当前位置」一旦缺失就永远不会重建 —— 用户首次拒绝定位、手动加了几个城市、
+    /// 之后再去设置里开权限，就会一直看不到当前位置。
+    ///
+    /// 挂在 onAppear 而不只是 scenePhase：列表在已激活的场景里打开时
+    /// scenePhase 不变，只靠它是不会触发的。
+    private func refreshCurrentLocationIfNeeded() {
+        guard !locationDenied else { return }
+        guard !cities.contains(where: { $0.isCurrentLocation == true }) else { return }
+        CityManager.manager.refreshCurrentLocationCity { city, _ in
+            guard city != nil else { return }
+            cities = CityManager.manager.allCities()
+            Task { await fillMissing() }
+        }
+    }
+
     // MARK: - 操作
 
     private func select(_ city: CityModel) {
@@ -166,8 +273,11 @@ struct CityListView: View {
 
     private func deleteRows(_ offsets: IndexSet) {
         for index in offsets {
-            if let key = cities[index].cityKey { snapshots[key] = nil }
-            _ = CityManager.manager.deleteCity(cities[index])
+            let city = cities[index]
+            // 删成功了才清快照。deleteCity 对「当前位置」返回 false ——
+            // 无条件清的话，行还在、快照没了，卡片会变成一张空白。
+            guard CityManager.manager.deleteCity(city) else { continue }
+            if let key = city.cityKey { snapshots[key] = nil }
         }
         cities = CityManager.manager.allCities()
     }
@@ -175,93 +285,29 @@ struct CityListView: View {
 
 // MARK: - 城市卡片
 
-/// 一个城市的概览卡：地名 + 当前温度 + 天况高低温 + 迷你多天预报。
+/// 一个城市的概览卡。
 ///
-/// 卡片底色取自该城市**自己**的天况（与首页共用 WeatherPalette）——
+/// 卡片底色取自该城市**自己**的天况（与首页、小组件共用 WeatherPalette）——
 /// 一眼扫过去，蓝的晴、灰的阴，不用逐个读文字。
+/// 内容部分抽在 CityWeatherCardContent，与中号小组件共用同一份代码。
 private struct CityCard: View {
     let city: CityModel
     let snapshot: CityWeatherSnapshot?
 
-    private var report: WeatherReport? { snapshot?.weather }
-    private var now: WeatherNow? { report?.now }
-    private var today: WeatherDay? { report?.daily?.first }
-    private var condition: VWCondition { now?.condition ?? .unknown }
+    private var condition: VWCondition { snapshot?.weather?.now?.condition ?? .unknown }
     private var isNight: Bool { snapshot?.sun?.isNight ?? false }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 5) {
-                        if city.isCurrentLocation == true {
-                            Image(systemName: "location.fill").font(.caption2)
-                        }
-                        Text(city.displayName)
-                            .font(.subheadline.weight(.medium))
-                            .lineLimit(1)
-                    }
-                    HStack(spacing: 8) {
-                        Text(now?.conditionText ?? "--")
-                        if let hi = today?.tempMax, let lo = today?.tempMin {
-                            Text("|").foregroundStyle(.white.opacity(0.35))
-                            Text("▼ \(AppSettings.shared.tempText(lo))")
-                            Text("▲ \(AppSettings.shared.tempText(hi))")
-                        }
-                    }
-                    .font(.caption)
-                    .foregroundStyle(.white.opacity(0.8))
-                }
-                Spacer(minLength: 8)
-                Text(AppSettings.shared.tempText(now?.temperature))
-                    .font(.system(size: 40, weight: .semibold))
-            }
-
-            if let days = report?.daily, !days.isEmpty {
-                miniForecast(Array(days.prefix(7)))
-            }
-        }
-        .foregroundStyle(.white)
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            LinearGradient(colors: WeatherPalette.colors(for: condition, isNight: isNight),
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        CityWeatherCardContent(title: city.displayName,
+                               isCurrentLocation: city.isCurrentLocation == true,
+                               report: snapshot?.weather,
+                               isNight: isNight)
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                LinearGradient(colors: WeatherPalette.colors(for: condition, isNight: isNight),
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
-
-    private func miniForecast(_ days: [WeatherDay]) -> some View {
-        HStack(spacing: 0) {
-            ForEach(days) { day in
-                VStack(spacing: 6) {
-                    Text(Self.shortWeekday(day.date))
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.7))
-                    Image(systemName: (day.condition ?? .unknown).symbol())
-                        .symbolRenderingMode(.multicolor)
-                        .font(.system(size: 16))
-                        .frame(height: 20)
-                    Text(AppSettings.shared.tempText(day.tempMax))
-                        .font(.caption.weight(.semibold))
-                }
-                .frame(maxWidth: .infinity)
-            }
-        }
-    }
-
-    /// "2026-07-16" → "四"。今天也用星期，不用「今」——
-    /// 一排七个字，混用会让对齐看着乱。
-    private static func shortWeekday(_ raw: String?) -> String {
-        guard let raw, let date = dayParser.date(from: raw) else { return "-" }
-        let i = Calendar.current.component(.weekday, from: date)   // 1 = 周日
-        return ["日", "一", "二", "三", "四", "五", "六"][i - 1]
-    }
-
-    private static let dayParser: DateFormatter = {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "en_US_POSIX")
-        f.dateFormat = "yyyy-MM-dd"
-        return f
-    }()
 }

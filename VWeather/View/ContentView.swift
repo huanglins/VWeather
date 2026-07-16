@@ -303,6 +303,11 @@ struct ContentView: View {
                 ForEach(alerts) { alert in
                     NavigationLink { alertDetail(alert) } label: {
                         alertRow(alert)
+                            // 行里有 Spacer，那段是透明的、默认不参与 hit-test ——
+                            // 只有文字和箭头点得动，中间一大片空白点不动。
+                            // 以前首页是 List，行自带整行命中区；改成 ScrollView
+                            // 之后这份"白送"就没了，得自己补。
+                            .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
                     if alert.id != alerts.last?.id {
@@ -448,6 +453,10 @@ struct ContentView: View {
                     Label("太阳详情", systemImage: "sun.max")
                         .font(.footnote)
                         .foregroundStyle(.white.opacity(0.75))
+                        // 标题与展开箭头之间是 Spacer，那段默认点不动。
+                        // 撑满再给个 contentShape，整条标题栏才都能点。
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                 }
                 .tint(.white.opacity(0.6))
             }
@@ -471,6 +480,10 @@ struct ContentView: View {
                     Label("月亮详情", systemImage: "moon.stars")
                         .font(.footnote)
                         .foregroundStyle(.white.opacity(0.75))
+                        // 标题与展开箭头之间是 Spacer，那段默认点不动。
+                        // 撑满再给个 contentShape，整条标题栏才都能点。
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
                 }
                 .tint(.white.opacity(0.6))
             }

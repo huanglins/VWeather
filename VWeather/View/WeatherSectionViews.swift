@@ -102,7 +102,7 @@ struct HourlyForecastSection: View {
         WeatherCard(title: "小时天气预报", systemImage: "clock") {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 18) {
-                    ForEach(hours) { hour in
+                    ForEach(Array(hours.enumerated()), id: \.element.id) { index, hour in
                         VStack(spacing: 6) {
                             Text(QWeatherFormat.hourText(hour.time))
                                 .font(.caption2)
@@ -127,14 +127,16 @@ struct HourlyForecastSection: View {
                                 .font(.footnote.weight(.semibold))
                                 .foregroundStyle(.white)
                         }
-                        .frame(minWidth: 44)
+                        // 首格内容左对齐，贴到卡片 14pt 内边距，与其他左对齐面板齐平；
+                        // 其余格居中，保持逐小时的列状节奏。
+                        .frame(minWidth: 44, alignment: index == 0 ? .leading : .center)
                     }
                 }
                 .padding(.vertical, 2)
             }
-            // 让滚动区能贴到卡片边缘，右侧不留白 —— 有内容被裁掉才看得出「还能滑」
-            .padding(.horizontal, -14)
-            .padding(.leading, 14)
+            // 用卡片自身的 14 内边距把滚动区左右**对称**框住：静止时首/末格两侧间距一致，
+            // 滚动时也在两侧 14pt 处对称裁切。（不做贴边溢出——溢出内容会让静止时右侧
+            // 无间距、与左侧不一致，那正是之前的问题。）
         }
     }
 }
@@ -354,6 +356,9 @@ struct LifeIndicesSection: View {
                     LifeIndicesFullView(indices: indices)
                 } label: {
                     gridRows
+                        // 每张小卡自带底色、点得动，但卡与卡之间的间距是透明的，
+                        // 以及奇数项那个占位格 —— 点在那些地方没反应。
+                        .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
             }

@@ -28,10 +28,28 @@ let UD_SelectedCityKey = "VW_selectedCityKey"
 class CityWeatherManager {
     static let manager = CityWeatherManager()
 
-    /// 读取城市的天气缓存快照（用于切换时秒显 / 离线）
+    /// 「相近共享」半径：两地点相距在此距离内视为同一处天气，共用一条快照、只请求一次。
+    /// 覆盖「同一个家」的当前定位（GPS 点）与手动城市（地理编码中心）常见的 1–3km 偏差，
+    /// 又不至于把用户特意分开添加的相邻城区并成一份。
+    static let shareRadius: CLLocationDistance = 3000   // 3km
+
+    /// 读取城市的天气缓存快照（用于切换时秒显 / 离线）。
+    /// 按「相近」取：返回半径内**最近**的一条快照，使当前定位与坐标相近的手动城市共用同一条。
     func cachedSnapshot(for city: CityModel) -> CityWeatherSnapshot? {
-        guard let key = city.cityKey else { return nil }
-        return CityWeatherSnapshot.objects(whereSQL: "cityKey = ?", params: [key]).first
+        guard let lat = city.latitude, let lng = city.longitude else { return nil }
+        return nearestSnapshot(to: CLLocation(latitude: lat, longitude: lng))
+    }
+
+    /// 与 location 相近（半径内）的现有快照中**最近**的一条；没有则 nil。
+    private func nearestSnapshot(to location: CLLocation) -> CityWeatherSnapshot? {
+        var best: (snap: CityWeatherSnapshot, dist: CLLocationDistance)?
+        for snap in CityWeatherSnapshot.objects() {
+            guard let loc = snap.location else { continue }
+            let d = location.distance(from: loc)
+            guard d <= Self.shareRadius else { continue }
+            if best == nil || d < best!.dist { best = (snap, d) }
+        }
+        return best?.snap
     }
 
     /// 当前选中城市（App Group 共享；只读、不依赖 SyncManager，供小组件复用）。
@@ -61,22 +79,28 @@ class CityWeatherManager {
     /// 同 `refresh`，但一并返回失败原因与是否降级，供重试与 UI 提示使用。
     @discardableResult
     func refreshDetailed(for city: CityModel, force: Bool = false) async -> WeatherRefreshResult {
-        guard let key = city.cityKey else { return WeatherRefreshResult() }
+        guard let lat = city.latitude, let lng = city.longitude else { return WeatherRefreshResult() }
+        let location = CLLocation(latitude: lat, longitude: lng)
 
-        let cached = cachedSnapshot(for: city)
+        // 半径内已有可复用的快照：在它上面更新（多城共用一条）；没有才新建、锚在本城坐标。
+        let cached = nearestSnapshot(to: location)
 
         // 缓存里没有天气时（上次失败，或旧版本遗留的 WeatherDisplay 解不出来）
         // 不受节流，立即重试。
         let needWeather = force || cached?.weather == nil || Self.isStale(cached?.updateDate)
         if !needWeather, let cached {
-            return WeatherRefreshResult(snapshot: cached)
+            return WeatherRefreshResult(snapshot: cached)   // 相近且新鲜 → 直接复用，不请求
         }
 
-        let location = city.location
         let (report, error) = await Self.fetchReport(location)
 
         var snap = cached ?? CityWeatherSnapshot()
-        snap.cityKey = key
+        if snap.weatherKey == nil {
+            // 新建快照：以本城坐标作代表点（后续相近城市据此共用）
+            snap.weatherKey = CityModel.makeKey(lat: lat, lng: lng)
+            snap.latitude = lat
+            snap.longitude = lng
+        }
 
         // 失败时保留上次的值，好过把已有数据清成 nil ——
         // 离线时展示「30 分钟前的天气」远好过展示空白。
@@ -84,9 +108,11 @@ class CityWeatherManager {
             snap.weatherJSON = CityWeatherSnapshot.encodeJSON(report)
         }
 
-        // 日月本地算，不依赖网络，故天气失败它也照常更新
-        let sun = VHLSunMoonManager.manager.sunInfo(location: location)
-        let moon = VHLSunMoonManager.manager.moonInfo(location: location)
+        // 日月本地算，不依赖网络，故天气失败它也照常更新。
+        // 按快照的代表坐标算，与快照锚点一致（复用他城快照时也不串位）。
+        let snapLoc = snap.location ?? location
+        let sun = VHLSunMoonManager.manager.sunInfo(location: snapLoc)
+        let moon = VHLSunMoonManager.manager.moonInfo(location: snapLoc)
         snap.sunJSON = CityWeatherSnapshot.encodeJSON(sun)
         snap.moonJSON = CityWeatherSnapshot.encodeJSON(moon)
         // 成功失败都记，失败时用于退避
@@ -96,6 +122,25 @@ class CityWeatherManager {
         return WeatherRefreshResult(snapshot: snap,
                                     weatherError: error,
                                     usedFallback: report?.source == .weatherKit)
+    }
+
+    /// 清理无人引用的孤儿快照：半径内没有任何在用（未软删）城市的快照即删除。
+    /// 快照按「相近」共享、不再与城市一一对应，故城市增删 / 当前位置移动后调用它做 GC，
+    /// 而非在删除单个城市时直接删其快照（那样会误删仍被邻近城市共用的一条）。
+    func pruneOrphanSnapshots() {
+        let cityLocations: [CLLocation] = CityModel.objects(whereSQL: "isDeleted != 1").compactMap {
+            guard let la = $0.latitude, let lo = $0.longitude else { return nil }
+            return CLLocation(latitude: la, longitude: lo)
+        }
+        for snap in CityWeatherSnapshot.objects() {
+            guard let key = snap.weatherKey else { continue }
+            let referenced = snap.location.map { loc in
+                cityLocations.contains { $0.distance(from: loc) <= Self.shareRadius }
+            } ?? false      // 无坐标的老快照视作孤儿
+            if !referenced {
+                CityWeatherSnapshot.delete(whereSQL: "weatherKey = '\(key)'")
+            }
+        }
     }
 
     /// 距上次更新是否已超过节流间隔（未更新过视为过期）

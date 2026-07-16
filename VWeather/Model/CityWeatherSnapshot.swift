@@ -9,11 +9,21 @@
 //
 
 import Foundation
+import CoreLocation
 
-/// 城市天气 + 日月快照。以 `cityKey` 与 `CityModel` 关联。
+/// 城市天气 + 日月快照。
+///
+/// ⚠️ **不与某个城市一一绑定**，而是以「取数点坐标」为身份。
+/// 相近（见 CityWeatherManager.shareRadius）的多个城市——典型如「当前定位」与坐标
+/// 相近的手动城市——共用同一条快照，只请求一次天气。故这里存的是**代表坐标**
+/// 而非 cityKey：查询时按经纬度做距离判定找最近的一条复用。
 struct CityWeatherSnapshot: VHLSQLiteObject {
     var pkid: Int?
-    var cityKey: String?        // 关联城市（唯一键）
+    /// 代表坐标的 makeKey（`"%.4f,%.4f"`），作唯一键：同一取数点 upsert 到同一行。
+    var weatherKey: String?
+    /// 代表坐标 —— 供「相近共享」的距离判定（存 Double，免去解析 weatherKey 字符串）。
+    var latitude: Double?
+    var longitude: Double?
 
     // 各模型整体 JSON（避免逐字段映射）
     var weatherJSON: String?    // WeatherReport（后台为主，WeatherKit 兜底）
@@ -26,7 +36,13 @@ struct CityWeatherSnapshot: VHLSQLiteObject {
 
     init() {}
 
-    func uniqueKeys() -> [String]? { ["cityKey"] }
+    func uniqueKeys() -> [String]? { ["weatherKey"] }
+
+    /// 代表坐标（无经纬度时为 nil），供「相近共享」的距离判定。
+    var location: CLLocation? {
+        guard let la = latitude, let lo = longitude else { return nil }
+        return CLLocation(latitude: la, longitude: lo)
+    }
 
     // MARK: - 便捷访问（惰性解码；计算属性不入库）
 
@@ -52,8 +68,8 @@ struct CityWeatherSnapshot: VHLSQLiteObject {
     }
 }
 
-// 注：旧库里的 supplementJSON / supplementDate 两列会成为孤儿 —— VHLSQLite 只加列不删列。
-// 无害，留着即可；强行清理要写迁移，不值当。
+// 注：旧库里的 supplementJSON / supplementDate、以及旧的 cityKey 列会成为孤儿
+// —— VHLSQLite 只加列不删列。无害，留着即可；强行清理要写迁移，不值当。
 //
 // 那两列是双源时代的产物：基础天气走 WeatherKit、补充数据走后台，各存一列、各自节流。
 // 拆成两个节流是因为 Widget 每 30 分钟刷新会一直把 updateDate 顶新，
