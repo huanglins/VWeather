@@ -61,12 +61,10 @@ struct CityWeatherCardContent: View {
     }
 
     private func miniForecast(_ days: [WeatherDay]) -> some View {
+        // space-between：首列贴左、末列贴右（与上方地名/大温度对齐），列间用等宽
+        // Spacer 撑开 —— 既左右均分、间距一致，又两端顶到边，不会凹进半格。
         HStack(spacing: 0) {
             ForEach(Array(days.enumerated()), id: \.element.id) { index, day in
-                // 首末列贴边（与上方地名/大温度的左右边缘对齐），中间列居中。
-                // 全部居中的话两端会各凹进半格，看着比整体窄一圈。
-                let alignment: Alignment = index == 0 ? .leading
-                    : index == days.count - 1 ? .trailing : .center
                 VStack(spacing: 6) {
                     Text(Self.shortWeekday(day.date))
                         .font(.caption2)
@@ -78,7 +76,7 @@ struct CityWeatherCardContent: View {
                     Text(AppSettings.shared.tempText(day.tempMax))
                         .font(.caption.weight(.semibold))
                 }
-                .frame(maxWidth: .infinity, alignment: alignment)
+                if index < days.count - 1 { Spacer(minLength: 0) }
             }
         }
     }

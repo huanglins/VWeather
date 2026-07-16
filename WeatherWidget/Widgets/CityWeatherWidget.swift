@@ -121,36 +121,244 @@ enum WidgetDeepLink {
 }
 
 struct CityWeatherWidgetView: View {
+    @Environment(\.widgetFamily) private var family
     var entry: CityWeatherEntry
 
     var body: some View {
+        content
+            .containerBackground(for: .widget) { background }
+            .widgetURL(entry.missing ? nil : WidgetDeepLink.url(cityKey: entry.cityKey))
+    }
+
+    @ViewBuilder
+    private var content: some View {
         if entry.missing {
-            VStack(spacing: 6) {
-                Image(systemName: "location.slash").font(.title3)
-                Text("暂无城市").font(.subheadline.weight(.medium))
-                Text("在 App 中添加后，长按小组件选择")
-                    .font(.caption2)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(.white.opacity(0.7))
-            }
-            .foregroundStyle(.white)
-            .containerBackground(for: .widget) {
-                LinearGradient(colors: WeatherPalette.colors(for: .unknown, isNight: false),
-                               startPoint: .topLeading, endPoint: .bottomTrailing)
-            }
+            missingView
+        } else if family == .systemSmall {
+            CityWeatherSmallView(entry: entry)   // 小号：紧凑实况，放不下七天预报
+        } else if family == .systemLarge {
+            CityWeatherLargeView(entry: entry)   // 大号：实况 + 逐小时 + 七天 + 空气质量
         } else {
+            // 中号：城市卡（含迷你七天预报），与列表卡、首页同源
             CityWeatherCardContent(title: entry.title,
                                    isCurrentLocation: entry.isCurrentLocation,
                                    report: entry.report,
                                    isNight: entry.isNight)
-                .containerBackground(for: .widget) {
-                    // 底色随该城市的天况变，与列表卡、首页同一套调色板
-                    LinearGradient(colors: WeatherPalette.colors(for: entry.condition,
-                                                                 isNight: entry.isNight),
-                                   startPoint: .topLeading, endPoint: .bottomTrailing)
+        }
+    }
+
+    private var missingView: some View {
+        VStack(spacing: 6) {
+            Image(systemName: "location.slash").font(.title3)
+            Text("暂无城市").font(.subheadline.weight(.medium))
+            Text("在 App 中添加后，长按小组件选择")
+                .font(.caption2)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(.white.opacity(0.7))
+        }
+        .foregroundStyle(.white)
+    }
+
+    /// 底色随该城市的天况变，与列表卡、首页同一套调色板。
+    private var background: some View {
+        let condition: VWCondition = entry.missing ? .unknown : entry.condition
+        let night = entry.missing ? false : entry.isNight
+        return LinearGradient(colors: WeatherPalette.colors(for: condition, isNight: night),
+                              startPoint: .topLeading, endPoint: .bottomTrailing)
+    }
+}
+
+/// 小号布局：城市名 + 天气图标 · 大温度 · 天况 + 高低温。
+struct CityWeatherSmallView: View {
+    var entry: CityWeatherEntry
+
+    var body: some View {
+        let now = entry.report?.now
+        let today = entry.report?.daily?.first
+        return VStack(alignment: .leading, spacing: 0) {
+            HStack(spacing: 4) {
+                if entry.isCurrentLocation {
+                    Image(systemName: "location.fill").font(.caption2)
                 }
-                // 点击打开 App 并把首页切到这座城市
-                .widgetURL(WidgetDeepLink.url(cityKey: entry.cityKey))
+                Text(entry.title)
+                    .font(.subheadline.weight(.medium))
+                    .lineLimit(1)
+                Spacer(minLength: 4)
+                Image(systemName: entry.condition.symbol(isNight: entry.isNight))
+                    .symbolRenderingMode(.multicolor)
+                    .font(.system(size: 18))
+            }
+
+            Text(AppSettings.shared.tempText(now?.temperature))
+                .font(.system(size: 48, weight: .semibold))
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
+                .padding(.top, 2)
+
+            Spacer(minLength: 0)
+
+            Text(now?.conditionText ?? "--")
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.85))
+                .lineLimit(1)
+            if let hi = today?.tempMax, let lo = today?.tempMin {
+                Text("↓\(AppSettings.shared.tempText(lo))  ↑\(AppSettings.shared.tempText(hi))")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.7))
+            }
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+    }
+}
+
+/// Widget 本地格式化（QWeatherFormat 在主 App target，widget 用不到，取所需复刻）。
+private enum WidgetFmt {
+    /// 逐小时的「小时」文案，当前这一小时显示「现在」。
+    static func hour(_ raw: String?) -> String {
+        guard let raw, let d = WeatherTime.date(raw) else { return "--" }
+        if Calendar.current.isDate(d, equalTo: Date(), toGranularity: .hour) { return "现在" }
+        return d.formatted(.dateTime.hour())
+    }
+    /// 后台的 "rgba(r,g,b,a)" → Color。
+    static func rgba(_ raw: String?) -> Color? {
+        guard let raw, raw.hasPrefix("rgba("), raw.hasSuffix(")") else { return nil }
+        let parts = raw.dropFirst(5).dropLast()
+            .split(separator: ",").compactMap { Double($0.trimmingCharacters(in: .whitespaces)) }
+        guard parts.count == 4 else { return nil }
+        return Color(.sRGB, red: parts[0] / 255, green: parts[1] / 255, blue: parts[2] / 255, opacity: parts[3])
+    }
+}
+
+/// 大号布局：实况头部 + 逐小时 + 未来七天 + 空气质量。
+/// WeatherKit 兜底时没有逐小时 / 空气质量，那两段按「有才显示」自动省略。
+struct CityWeatherLargeView: View {
+    var entry: CityWeatherEntry
+
+    var body: some View {
+        let report = entry.report
+        let now = report?.now
+        let today = report?.daily?.first
+        return VStack(alignment: .leading, spacing: 10) {
+            header(now: now, today: today)
+
+            if let hours = report?.hourly, !hours.isEmpty {
+                divider
+                section("逐小时", "clock") { hourlyStrip(Array(hours.prefix(6)), report: report) }
+            }
+            if let days = report?.daily, !days.isEmpty {
+                divider
+                section("未来几天", "calendar") { dailyStrip(Array(days.prefix(7))) }
+            }
+            Spacer(minLength: 0)
+            if let air = report?.air {
+                divider
+                aqiLine(air)
+            }
+        }
+        .foregroundStyle(.white)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+
+    // MARK: 头部
+
+    private func header(now: WeatherNow?, today: WeatherDay?) -> some View {
+        HStack(alignment: .top) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 5) {
+                    if entry.isCurrentLocation {
+                        Image(systemName: "location.fill").font(.caption2)
+                    }
+                    Text(entry.title).font(.headline).lineLimit(1)
+                }
+                HStack(spacing: 8) {
+                    Text(now?.conditionText ?? "--")
+                    if let hi = today?.tempMax, let lo = today?.tempMin {
+                        Text("↓\(AppSettings.shared.tempText(lo))  ↑\(AppSettings.shared.tempText(hi))")
+                    }
+                }
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.85))
+            }
+            Spacer(minLength: 8)
+            Text(AppSettings.shared.tempText(now?.temperature))
+                .font(.system(size: 46, weight: .semibold))
+        }
+    }
+
+    // MARK: 分区外壳
+
+    private var divider: some View {
+        Rectangle().fill(.white.opacity(0.15)).frame(height: 0.5)
+    }
+
+    private func section<Content: View>(_ title: String, _ icon: String,
+                                        @ViewBuilder _ content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Label(title, systemImage: icon)
+                .font(.caption2.weight(.medium))
+                .foregroundStyle(.white.opacity(0.6))
+            content()
+        }
+    }
+
+    // MARK: 逐小时 / 逐日
+
+    // 两段横向都用 space-between：首列贴左、末列贴右，列间等宽 Spacer 撑开 ——
+    // 均分且间距一致，两端顶到边。
+
+    private func hourlyStrip(_ hours: [WeatherHour], report: WeatherReport?) -> some View {
+        HStack(spacing: 0) {
+            ForEach(Array(hours.enumerated()), id: \.offset) { i, h in
+                let night = WeatherTime.date(h.time).map { report?.isNight(at: $0) ?? false } ?? false
+                VStack(spacing: 5) {
+                    Text(WidgetFmt.hour(h.time))
+                        .font(.caption2).foregroundStyle(.white.opacity(0.7))
+                    Image(systemName: (h.condition ?? .unknown).symbol(isNight: night))
+                        .symbolRenderingMode(.multicolor)
+                        .font(.system(size: 16)).frame(height: 20)
+                    Text(AppSettings.shared.tempText(h.temperature))
+                        .font(.caption.weight(.medium))
+                }
+                if i < hours.count - 1 { Spacer(minLength: 0) }
+            }
+        }
+    }
+
+    private func dailyStrip(_ days: [WeatherDay]) -> some View {
+        HStack(spacing: 0) {
+            ForEach(Array(days.enumerated()), id: \.offset) { i, d in
+                VStack(spacing: 4) {
+                    Text(CityWeatherCardContent.shortWeekday(d.date))
+                        .font(.caption2).foregroundStyle(.white.opacity(0.7))
+                    Image(systemName: (d.condition ?? .unknown).symbol())
+                        .symbolRenderingMode(.multicolor)
+                        .font(.system(size: 16)).frame(height: 20)
+                    Text(AppSettings.shared.tempText(d.tempMax))
+                        .font(.caption.weight(.semibold))
+                    Text(AppSettings.shared.tempText(d.tempMin))
+                        .font(.caption2).foregroundStyle(.white.opacity(0.6))
+                }
+                if i < days.count - 1 { Spacer(minLength: 0) }
+            }
+        }
+    }
+
+    // MARK: 空气质量
+
+    private func aqiLine(_ air: AirQuality) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "aqi.medium").font(.caption)
+            Text("空气质量").font(.caption).foregroundStyle(.white.opacity(0.85))
+            Spacer(minLength: 8)
+            // 用色点而非填充色块：上游等级色是给「黑字大色块」设计的，
+            // 直接铺到深色小组件上对比度不稳，色点 + 白字始终清晰。
+            Circle().fill(WidgetFmt.rgba(air.color) ?? .gray).frame(width: 8, height: 8)
+            Text(air.aqiText ?? air.aqi.map { String(Int($0)) } ?? "--")
+                .font(.caption.weight(.bold))
+            if let cat = air.category {
+                Text(cat).font(.caption2).foregroundStyle(.white.opacity(0.75))
+            }
         }
     }
 }
@@ -166,7 +374,7 @@ struct CityWeatherWidget: Widget {
         }
         .configurationDisplayName("城市天气")
         .description("显示指定城市的实况与未来预报。长按可切换城市。")
-        // 只做中号：小号放不下七天预报，大号会剩一大片空白
-        .supportedFamilies([.systemMedium])
+        // 小号：紧凑实况；中号：含迷你七天预报；大号：实况 + 逐小时 + 七天 + 空气质量。
+        .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }
