@@ -65,24 +65,25 @@ struct ContentView: View {
 
     @ViewBuilder
     private func weatherList(city: CityModel) -> some View {
-        let w = snapshot?.weather
         let sun = snapshot?.sun
         let moon = snapshot?.moon
         let sup = snapshot?.supplement
+        let now = sup?.now
+        let today = sup?.daily?.first
+        // 日月由 SunKit/MoonKit 本地算，昼夜判断直接用它的结果
+        let isNight = sun?.isNight ?? false
         List {
             // 头部概览
             Section {
                 VStack(spacing: 6) {
-                    if let symbol = w?.symbol, !symbol.isEmpty {
-                        Image(systemName: symbol)
-                            .symbolRenderingMode(.multicolor)
-                            .font(.system(size: 44))
-                    }
-                    Text(tempText(w?.temperature))
+                    Image(systemName: (now?.condition ?? .unknown).symbol(isNight: isNight))
+                        .symbolRenderingMode(.multicolor)
+                        .font(.system(size: 44))
+                    Text(tempText(now?.temperature))
                         .font(.system(size: 56, weight: .thin))
-                    Text(w?.conditionText ?? "--")
+                    Text(now?.conditionText ?? "--")
                         .foregroundStyle(.secondary)
-                    if let high = w?.highTemperature, let low = w?.lowTemperature {
+                    if let high = today?.tempMax, let low = today?.tempMin {
                         Text("最高 \(intText(high)) · 最低 \(intText(low))")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
@@ -110,18 +111,30 @@ struct ContentView: View {
                 MinutelyPrecipSection(minutely: minutely)
             }
 
+            // 逐小时预报：横向滚动，未来 24 小时
+            if let hours = sup?.hourly, !hours.isEmpty {
+                HourlyForecastSection(hours: hours, days: sup?.daily ?? [])
+            }
+
+            // 多天预报
+            if let days = sup?.daily, !days.isEmpty {
+                DailyForecastSection(days: days)
+            }
+
             // 空气质量
             if let air = sup?.air {
                 Section("空气质量") {
                     airHeader(air)
-                    infoRow("首要污染物", air.primary ?? "无")
-                    if let v = air.pm2p5 { infoRow("PM2.5", concentrationText(v)) }
-                    if let v = air.pm10 { infoRow("PM10", concentrationText(v)) }
-                    if let v = air.o3 { infoRow("臭氧 O₃", concentrationText(v)) }
-                    if let v = air.no2 { infoRow("二氧化氮 NO₂", concentrationText(v)) }
-                    if let v = air.so2 { infoRow("二氧化硫 SO₂", concentrationText(v)) }
-                    // CO 单位是 mg/m³，与其它污染物不同
-                    if let v = air.co { infoRow("一氧化碳 CO", String(format: "%.1f mg/m³", v)) }
+                    infoRow("首要污染物", air.primaryPollutant ?? "无")
+                    if let p = air.pollutants {
+                        if let v = p.pm2p5 { infoRow("PM2.5", concentrationText(v)) }
+                        if let v = p.pm10 { infoRow("PM10", concentrationText(v)) }
+                        if let v = p.o3 { infoRow("臭氧 O₃", concentrationText(v)) }
+                        if let v = p.no2 { infoRow("二氧化氮 NO₂", concentrationText(v)) }
+                        if let v = p.so2 { infoRow("二氧化硫 SO₂", concentrationText(v)) }
+                        // CO 单位是 mg/m³，与其它污染物不同
+                        if let v = p.co { infoRow("一氧化碳 CO", String(format: "%.1f mg/m³", v)) }
+                    }
                     if let advice = air.advice, !advice.isEmpty {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("健康建议").font(.subheadline)
@@ -154,14 +167,20 @@ struct ContentView: View {
             }
 
             // 天气详情
+            //
+            // 单位由后台的中立 schema 保证：风速 km/h、气压 hPa、能见度 km、
+            // 湿度与概率 0-100。各数据源的原始表示差异极大，后台已抹平。
             Section("天气") {
-                infoRow("体感温度", tempText(w?.apparentTemperature))
-                infoRow("湿度", percentText(w?.humidity))
-                infoRow("风速", w?.windSpeed.map { String(format: "%.1f m/s", $0) } ?? "--")
-                infoRow("风向", w?.windDirection ?? "--")
-                infoRow("气压", w?.pressure.map { String(format: "%.0f hPa", $0) } ?? "--")
-                infoRow("降雨概率", w?.precipitationChance.map { "\(Int($0 * 100))%" } ?? "--")
-                infoRow("紫外线", w?.uv.map { "\($0)" } ?? "--")
+                infoRow("体感温度", tempText(now?.feelsLike))
+                infoRow("湿度", percentText(now?.humidity.map { Int($0) }))
+                infoRow("风速", now?.windSpeed.map { String(format: "%.0f km/h", $0) } ?? "--")
+                infoRow("风向", windText(now?.windDirectionText, now?.windDirection))
+                infoRow("气压", now?.pressure.map { String(format: "%.0f hPa", $0) } ?? "--")
+                infoRow("能见度", now?.visibility.map { String(format: "%.0f km", $0) } ?? "--")
+                infoRow("露点", tempText(now?.dewPoint))
+                infoRow("云量", percentText(now?.cloudCover.map { Int($0) }))
+                // 实时天气不含紫外线，取当天预报的最大值
+                infoRow("紫外线", today?.uvIndexMax.map { String(format: "%.0f", $0) } ?? "--")
             }
 
             // 太阳
@@ -254,7 +273,7 @@ struct ContentView: View {
                 Circle()
                     .fill(QWeatherFormat.color(air.color) ?? .secondary)
                     .frame(width: 46, height: 46)
-                Text(air.aqiDisplay ?? "--")     // 展示用 aqiDisplay：可能是 ">300" 这类非数值
+                Text(air.aqiText ?? "--")     // 展示用 aqiText：可能是 ">300" 这类非数值
                     .font(.system(size: 16, weight: .semibold))
                     .foregroundStyle(.black.opacity(0.75))
             }
@@ -276,6 +295,16 @@ struct ContentView: View {
         String(format: "%.0f μg/m³", value)
     }
 
+    /// 风向。中立 schema 保证有角度，方位文字则未必——某些数据源只给角度
+    /// （如 Apple），此时用角度换算出方位。
+    private func windText(_ text: String?, _ degrees: Double?) -> String {
+        if let text, !text.isEmpty { return text }
+        guard let d = degrees else { return "--" }
+        let names = ["北", "东北", "东", "东南", "南", "西南", "西", "西北"]
+        let i = Int((d.truncatingRemainder(dividingBy: 360) + 22.5) / 45) % 8
+        return names[i] + "风"
+    }
+
     /// AQI 预报行：日期 + 色块 AQI + 等级
     private func airForecastRow(_ title: String, _ air: AirQuality) -> some View {
         HStack {
@@ -283,7 +312,7 @@ struct ContentView: View {
             Spacer()
             Text(air.category ?? "--")
                 .foregroundStyle(.secondary)
-            Text(air.aqiDisplay ?? "--")
+            Text(air.aqiText ?? "--")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(.black.opacity(0.75))
                 .frame(minWidth: 34)
@@ -372,9 +401,9 @@ struct ContentView: View {
     }
 
     private func alertColor(_ alert: WeatherAlertInfo) -> Color {
-        // 优先用上游给的精确颜色；取不到再按色名兜底
-        if let color = QWeatherFormat.color(alert.colorRGBA) { return color }
-        switch alert.severityColor?.lowercased() {
+        // 后台的中立 schema 只给色名（blue/yellow/orange/red），不给 rgba ——
+        // 那是某一家数据源的专有表示，不属于中立层。
+        switch alert.color?.lowercased() {
         case "blue":   return .blue
         case "yellow": return .yellow
         case "orange": return .orange

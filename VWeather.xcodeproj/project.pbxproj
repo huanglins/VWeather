@@ -62,9 +62,12 @@
 		FADE00000000000000000209 /* CityModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000000109 /* CityModel.swift */; };
 		FADE0000000000000000020A /* CityWeatherSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE0000000000000000010A /* CityWeatherSnapshot.swift */; };
 		FADE00000000000000AA0011 /* WeatherSupplement.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000AA0001 /* WeatherSupplement.swift */; };
+		FADE00000000000000CC0100 /* VWCondition.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000CC0001 /* VWCondition.swift */; };
+		FADE00000000000000CC0200 /* VWCondition.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000CC0001 /* VWCondition.swift */; };
 		FADE00000000000000AA0012 /* VHLHTTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000AA0002 /* VHLHTTP.swift */; };
 		FADE00000000000000AA0013 /* VHLWeatherAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000AA0003 /* VHLWeatherAPI.swift */; };
 		FADE00000000000000AA0014 /* WeatherSupplementViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000AA0004 /* WeatherSupplementViews.swift */; };
+		FADE00000000000000AA0015 /* AttributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000AA0005 /* AttributionView.swift */; };
 		FADE00000000000000AA0021 /* WeatherSupplement.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000AA0001 /* WeatherSupplement.swift */; };
 		FADE00000000000000AA0022 /* VHLHTTP.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000AA0002 /* VHLHTTP.swift */; };
 		FADE00000000000000AA0023 /* VHLWeatherAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADE00000000000000AA0003 /* VHLWeatherAPI.swift */; };
@@ -196,9 +199,11 @@
 		FADE00000000000000000109 /* CityModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityModel.swift; sourceTree = "<group>"; };
 		FADE0000000000000000010A /* CityWeatherSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityWeatherSnapshot.swift; sourceTree = "<group>"; };
 		FADE00000000000000AA0001 /* WeatherSupplement.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherSupplement.swift; sourceTree = "<group>"; };
+		FADE00000000000000CC0001 /* VWCondition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VWCondition.swift; sourceTree = "<group>"; };
 		FADE00000000000000AA0002 /* VHLHTTP.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VHLHTTP.swift; sourceTree = "<group>"; };
 		FADE00000000000000AA0003 /* VHLWeatherAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VHLWeatherAPI.swift; sourceTree = "<group>"; };
 		FADE00000000000000AA0004 /* WeatherSupplementViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherSupplementViews.swift; sourceTree = "<group>"; };
+		FADE00000000000000AA0005 /* AttributionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AttributionView.swift; sourceTree = "<group>"; };
 		FADE0000000000000000010B /* DBManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DBManager.swift; sourceTree = "<group>"; };
 		FADE0000000000000000010C /* CityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityManager.swift; sourceTree = "<group>"; };
 		FADE0000000000000000010D /* CityWeatherManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityWeatherManager.swift; sourceTree = "<group>"; };
@@ -354,6 +359,7 @@
 				FADE0000000000000000010F /* CitySearchView.swift */,
 				BFD4AA312C72DBE60001C5D6 /* ContentView.swift */,
 				FADE00000000000000AA0004 /* WeatherSupplementViews.swift */,
+				FADE00000000000000AA0005 /* AttributionView.swift */,
 			);
 			path = View;
 			sourceTree = "<group>";
@@ -533,6 +539,7 @@
 				FADE00000000000000000109 /* CityModel.swift */,
 				FADE0000000000000000010A /* CityWeatherSnapshot.swift */,
 				FADE00000000000000AA0001 /* WeatherSupplement.swift */,
+				FADE00000000000000CC0001 /* VWCondition.swift */,
 			);
 			path = Model;
 			sourceTree = "<group>";
@@ -818,6 +825,7 @@
 				FADE00000000000000000209 /* CityModel.swift in Sources */,
 				FADE0000000000000000020A /* CityWeatherSnapshot.swift in Sources */,
 				FADE00000000000000AA0011 /* WeatherSupplement.swift in Sources */,
+				FADE00000000000000CC0100 /* VWCondition.swift in Sources */,
 				FADE00000000000000AA0012 /* VHLHTTP.swift in Sources */,
 				FADE00000000000000AA0013 /* VHLWeatherAPI.swift in Sources */,
 				FADE0000000000000000020B /* DBManager.swift in Sources */,
@@ -828,6 +836,7 @@
 				BFD4AAC72C72E15C0001C5D6 /* ShakeAnimationView.swift in Sources */,
 				BFD4AA322C72DBE60001C5D6 /* ContentView.swift in Sources */,
 				FADE00000000000000AA0014 /* WeatherSupplementViews.swift in Sources */,
+				FADE00000000000000AA0015 /* AttributionView.swift in Sources */,
 				BFD4AAB92C72E10E0001C5D6 /* AppDelegate.swift in Sources */,
 				BFD4AAC52C72E15C0001C5D6 /* FilmAnimationView.swift in Sources */,
 				BFD4AABB2C72E10E0001C5D6 /* SceneDelegate.swift in Sources */,
@@ -858,6 +867,7 @@
 				FADE00000000000000004009 /* CityModel.swift in Sources */,
 				FADE0000000000000000400A /* CityWeatherSnapshot.swift in Sources */,
 				FADE00000000000000AA0021 /* WeatherSupplement.swift in Sources */,
+				FADE00000000000000CC0200 /* VWCondition.swift in Sources */,
 				FADE00000000000000AA0022 /* VHLHTTP.swift in Sources */,
 				FADE00000000000000AA0023 /* VHLWeatherAPI.swift in Sources */,
 				FADE0000000000000000400B /* DBManager.swift in Sources */,

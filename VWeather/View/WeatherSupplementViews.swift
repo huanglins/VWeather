@@ -80,6 +80,187 @@ enum QWeatherFormat {
         guard let date = date(raw) else { return raw }
         return date.formatted(date: .abbreviated, time: .shortened)
     }
+
+    /// 只要小时，给逐小时预报用。当前这一小时显示「现在」。
+    ///
+    /// 不能用 `timeText`：它带完整日期，24 格横排会把每格撑到 200pt 宽，
+    /// 布局直接失控。逐小时的语境里日期是冗余的。
+    static func hourText(_ raw: String?) -> String {
+        guard let raw, let date = date(raw) else { return "--" }
+        if Calendar.current.isDate(date, equalTo: Date(), toGranularity: .hour) { return "现在" }
+        return date.formatted(.dateTime.hour())
+    }
+}
+
+// MARK: - 逐小时预报
+
+/// 未来 24 小时，横向滚动。
+///
+/// 用横向滚动而非 List 行：24 项竖着排会把首页其它内容全挤到屏幕外，
+/// 而逐小时是「扫一眼趋势」的信息，不需要逐条阅读。
+struct HourlyForecastSection: View {
+    let hours: [WeatherHour]
+    /// 仅用于取每天的日出日落，好逐小时判断昼夜。
+    /// 跨越 24 小时必然跨昼夜，全部用同一个 isNight 会让凌晨挂着太阳。
+    let days: [WeatherDay]
+
+    /// 该时刻是否在日落后/日出前。
+    /// 无日出日落数据时回退到 18 点—6 点的粗略判断 —— 高纬度会不准，
+    /// 但总好过让所有小时共用当前的昼夜状态。
+    private func isNight(_ hour: WeatherHour) -> Bool {
+        guard let t = QWeatherFormat.date(hour.time) else { return false }
+        let day = days.first { d in
+            guard let s = QWeatherFormat.date(d.sunrise) else { return false }
+            return Calendar.current.isDate(s, inSameDayAs: t)
+        }
+        if let day,
+           let sunrise = QWeatherFormat.date(day.sunrise),
+           let sunset = QWeatherFormat.date(day.sunset) {
+            return t < sunrise || t >= sunset
+        }
+        let h = Calendar.current.component(.hour, from: t)
+        return h < 6 || h >= 18
+    }
+
+    var body: some View {
+        Section("逐小时预报") {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(alignment: .top, spacing: 18) {
+                    ForEach(hours) { hour in
+                        VStack(spacing: 6) {
+                            Text(QWeatherFormat.hourText(hour.time))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+
+                            Image(systemName: (hour.condition ?? .unknown).symbol(isNight: isNight(hour)))
+                                .symbolRenderingMode(.multicolor)
+                                .font(.system(size: 20))
+                                .frame(height: 24)
+
+                            // 只在有降水可能时显示概率，否则每格都挂个 0% 是纯噪音
+                            if let pop = hour.precipitationChance, pop > 0 {
+                                Text("\(Int(pop))%")
+                                    .font(.caption2)
+                                    .foregroundStyle(.blue)
+                            } else {
+                                Text(" ").font(.caption2)
+                            }
+
+                            Text(AppSettings.shared.tempText(hour.temperature))
+                                .font(.footnote.weight(.medium))
+                        }
+                        .frame(minWidth: 44)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            // 抵消 List 行的默认内边距，让滚动区能贴到屏幕边缘
+            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 0))
+        }
+    }
+}
+
+// MARK: - 多天预报
+
+/// 未来数天。每行：星期 + 天况 + 降水概率 + 温度区间条。
+struct DailyForecastSection: View {
+    let days: [WeatherDay]
+
+    /// 全部天数的温度跨度，用于把每天的区间条画在同一标尺上 ——
+    /// 各自归一化的话，条形长度就失去了横向可比性。
+    private var range: (min: Double, max: Double)? {
+        let lows = days.compactMap { $0.tempMin }
+        let highs = days.compactMap { $0.tempMax }
+        guard let lo = lows.min(), let hi = highs.max(), hi > lo else { return nil }
+        return (lo, hi)
+    }
+
+    var body: some View {
+        Section("\(days.count) 天预报") {
+            ForEach(days) { day in
+                HStack(spacing: 10) {
+                    Text(Self.weekdayText(day.date))
+                        .font(.subheadline)
+                        .frame(width: 42, alignment: .leading)
+
+                    Image(systemName: (day.condition ?? .unknown).symbol())
+                        .symbolRenderingMode(.multicolor)
+                        .font(.system(size: 17))
+                        .frame(width: 24)
+
+                    // 降水概率：没有就留空，不占视觉
+                    Group {
+                        if let pop = day.precipitationChance, pop > 0 {
+                            Text("\(Int(pop))%")
+                        } else {
+                            Text(" ")
+                        }
+                    }
+                    .font(.caption2)
+                    .foregroundStyle(.blue)
+                    .frame(width: 30, alignment: .leading)
+
+                    Text(AppSettings.shared.tempText(day.tempMin))
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 38, alignment: .trailing)
+
+                    if let r = range, let lo = day.tempMin, let hi = day.tempMax {
+                        TempRangeBar(low: lo, high: hi, scaleMin: r.min, scaleMax: r.max)
+                            .frame(height: 4)
+                    } else {
+                        Spacer()
+                    }
+
+                    Text(AppSettings.shared.tempText(day.tempMax))
+                        .font(.footnote.weight(.medium))
+                        .frame(width: 38, alignment: .leading)
+                }
+                .padding(.vertical, 1)
+            }
+        }
+    }
+
+    /// 日期形如 "2026-07-16"。今天/明天用中文词，其余用星期。
+    static func weekdayText(_ raw: String?) -> String {
+        guard let raw, let date = dayParser.date(from: raw) else { return raw ?? "--" }
+        if Calendar.current.isDateInToday(date) { return "今天" }
+        if Calendar.current.isDateInTomorrow(date) { return "明天" }
+        return date.formatted(.dateTime.weekday(.abbreviated))
+    }
+
+    /// 逐日预报的 date 是纯日期（无时区），按本地时区解析
+    private static let dayParser: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+}
+
+/// 温度区间条。所有天共用一个标尺，故条形的位置与长度可横向对比。
+private struct TempRangeBar: View {
+    let low: Double
+    let high: Double
+    let scaleMin: Double
+    let scaleMax: Double
+
+    var body: some View {
+        GeometryReader { geo in
+            let span = scaleMax - scaleMin
+            let x = (low - scaleMin) / span * geo.size.width
+            let w = max((high - low) / span * geo.size.width, 3)   // 太窄会看不见
+            ZStack(alignment: .leading) {
+                Capsule().fill(.quaternary)
+                Capsule()
+                    .fill(LinearGradient(colors: [.blue, .orange],
+                                         startPoint: .leading, endPoint: .trailing))
+                    .frame(width: w)
+                    .offset(x: x)
+            }
+        }
+    }
 }
 
 // MARK: - 分钟级降水
@@ -97,9 +278,10 @@ struct MinutelyPrecipSection: View {
 
     private var points: [Point] {
         (minutely.items ?? []).compactMap { item in
+            // 后台的中立 schema 已把降水量归一化为数字（各源原始表示不一，
+            // 和风给的是字符串），这里不必再自己转换。
             guard let time = QWeatherFormat.date(item.time),
-                  // 上游把毫米给成字符串
-                  let precip = Double(item.precip ?? "") else { return nil }
+                  let precip = item.precipitation else { return nil }
             return Point(time: time, precip: precip, isSnow: item.type == "snow")
         }
     }

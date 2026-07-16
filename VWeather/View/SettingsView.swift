@@ -67,11 +67,24 @@ struct SettingsView: View {
                     }
                 }
 
+                // 数据来源
+                //
+                // 合规：Apple 要求展示 Apple Weather 商标与「其他数据来源」链接，
+                // 两者由 AppleWeatherAttribution 一并给出，不要拆开或只留其一。
+                Section {
+                    AppleWeatherAttribution()
+                    LabeledContent("天气 · 日月", value: "Apple 天气")
+                    LabeledContent("空气质量 · 生活指数", value: "和风天气")
+                    LabeledContent("分钟降水 · 气象预警", value: "和风天气")
+                } header: {
+                    Text("数据来源")
+                } footer: {
+                    Text("天气数据由 Apple 天气提供，空气质量、生活指数、分钟级降水与气象预警由和风天气提供。日月数据由 SunKit · MoonKit 本地计算。")
+                }
+
                 // 关于
                 Section("关于") {
                     LabeledContent("版本", value: appVersion)
-                    LabeledContent("天气数据", value: "Apple WeatherKit")
-                    LabeledContent("日月数据", value: "SunKit · MoonKit")
                 }
             }
             .navigationTitle("设置")
