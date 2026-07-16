@@ -99,14 +99,14 @@ struct HourlyForecastSection: View {
     }
 
     var body: some View {
-        Section("逐小时预报") {
+        WeatherCard(title: "小时天气预报", systemImage: "clock") {
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(alignment: .top, spacing: 18) {
                     ForEach(hours) { hour in
                         VStack(spacing: 6) {
                             Text(QWeatherFormat.hourText(hour.time))
                                 .font(.caption2)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(.white.opacity(0.65))
                                 .lineLimit(1)
 
                             Image(systemName: (hour.condition ?? .unknown).symbol(isNight: isNight(hour)))
@@ -118,21 +118,23 @@ struct HourlyForecastSection: View {
                             if let pop = hour.precipitationChance, pop > 0 {
                                 Text("\(Int(pop))%")
                                     .font(.caption2)
-                                    .foregroundStyle(.blue)
+                                    .foregroundStyle(.white.opacity(0.75))
                             } else {
                                 Text(" ").font(.caption2)
                             }
 
                             Text(AppSettings.shared.tempText(hour.temperature))
-                                .font(.footnote.weight(.medium))
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.white)
                         }
                         .frame(minWidth: 44)
                     }
                 }
-                .padding(.vertical, 4)
+                .padding(.vertical, 2)
             }
-            // 抵消 List 行的默认内边距，让滚动区能贴到屏幕边缘
-            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 0))
+            // 让滚动区能贴到卡片边缘，右侧不留白 —— 有内容被裁掉才看得出「还能滑」
+            .padding(.horizontal, -14)
+            .padding(.leading, 14)
         }
     }
 }
@@ -153,17 +155,26 @@ struct DailyForecastSection: View {
     }
 
     var body: some View {
-        Section("\(days.count) 天预报") {
+        WeatherCard(title: "\(days.count) 日天气预报", systemImage: "calendar") {
+          VStack(spacing: 10) {
             ForEach(days) { day in
                 HStack(spacing: 10) {
                     Text(Self.weekdayText(day.date))
                         .font(.subheadline)
+                        .foregroundStyle(.white)
                         .frame(width: 42, alignment: .leading)
 
                     Image(systemName: (day.condition ?? .unknown).symbol())
                         .symbolRenderingMode(.multicolor)
                         .font(.system(size: 17))
                         .frame(width: 24)
+
+                    // 天况文案：设计里日期与温度之间有一列文字
+                    Text(day.conditionText ?? "--")
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.8))
+                        .lineLimit(1)
+                        .frame(width: 44, alignment: .leading)
 
                     // 降水概率：没有就留空，不占视觉
                     Group {
@@ -174,13 +185,13 @@ struct DailyForecastSection: View {
                         }
                     }
                     .font(.caption2)
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(.white.opacity(0.75))
                     .frame(width: 30, alignment: .leading)
 
                     Text(AppSettings.shared.tempText(day.tempMin))
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 38, alignment: .trailing)
+                        .foregroundStyle(.white.opacity(0.7))
+                        .frame(width: 34, alignment: .trailing)
 
                     if let r = range, let lo = day.tempMin, let hi = day.tempMax {
                         TempRangeBar(low: lo, high: hi, scaleMin: r.min, scaleMax: r.max)
@@ -190,11 +201,12 @@ struct DailyForecastSection: View {
                     }
 
                     Text(AppSettings.shared.tempText(day.tempMax))
-                        .font(.footnote.weight(.medium))
-                        .frame(width: 38, alignment: .leading)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 34, alignment: .leading)
                 }
-                .padding(.vertical, 1)
             }
+          }
         }
     }
 
@@ -228,9 +240,11 @@ private struct TempRangeBar: View {
             let x = (low - scaleMin) / span * geo.size.width
             let w = max((high - low) / span * geo.size.width, 3)   // 太窄会看不见
             ZStack(alignment: .leading) {
-                Capsule().fill(.quaternary)
+                // 底槽用白色半透明：.quaternary 会跟随浅色/深色模式变灰，
+                // 落在有色渐变上显脏
+                Capsule().fill(.white.opacity(0.22))
                 Capsule()
-                    .fill(LinearGradient(colors: [.blue, .orange],
+                    .fill(LinearGradient(colors: [Color(hex4: 0x6FC2FF), Color(hex4: 0xFF9A4D)],
                                          startPoint: .leading, endPoint: .trailing))
                     .frame(width: w)
                     .offset(x: x)
@@ -268,14 +282,16 @@ struct MinutelyPrecipSection: View {
         let hasPrecip = points.contains { $0.precip > 0 }
 
         if minutely.summary?.isEmpty == false || hasPrecip {
-            Section("分钟级降水") {
-                if let summary = minutely.summary, !summary.isEmpty {
-                    Label(summary, systemImage: hasPrecip ? "cloud.rain.fill" : "cloud.sun.fill")
-                        .font(.callout)
-                        .padding(.vertical, 2)
-                }
-                if hasPrecip {
-                    chart(points)
+            WeatherCard(title: "分钟级降水", systemImage: "cloud.rain") {
+                VStack(alignment: .leading, spacing: 8) {
+                    if let summary = minutely.summary, !summary.isEmpty {
+                        Label(summary, systemImage: hasPrecip ? "cloud.rain.fill" : "cloud.sun.fill")
+                            .font(.callout)
+                            .foregroundStyle(.white)
+                    }
+                    if hasPrecip {
+                        chart(points)
+                    }
                 }
             }
         }
@@ -303,20 +319,23 @@ struct MinutelyPrecipSection: View {
         }
         // 单位是「每 5 分钟毫米数」，数值很小，交给 Charts 自动定刻度
         .chartYAxis {
-            AxisMarks(position: .leading, values: .automatic(desiredCount: 3))
+            AxisMarks(position: .leading, values: .automatic(desiredCount: 3)) {
+                AxisGridLine().foregroundStyle(.white.opacity(0.15))
+                AxisValueLabel().foregroundStyle(.white.opacity(0.6))
+            }
         }
         .chartXAxis {
             AxisMarks(values: .automatic(desiredCount: 4)) { value in
-                AxisGridLine()
+                AxisGridLine().foregroundStyle(.white.opacity(0.15))
                 AxisValueLabel {
                     if let date = value.as(Date.self) {
                         Text(date, format: .dateTime.hour().minute())
+                            .foregroundStyle(.white.opacity(0.6))
                     }
                 }
             }
         }
-        .frame(height: 120)
-        .padding(.vertical, 6)
+        .frame(height: 110)
     }
 }
 
@@ -329,20 +348,15 @@ struct LifeIndicesSection: View {
 
     var body: some View {
         if !indices.isEmpty {
-            Section("生活指数") {
-                // 整个 grid 只包一个 NavigationLink，避免 16 个 Link 各 push 一次。
-                // 不用 LazyVGrid（在 List 内算不出固有高度导致被截断），改用 VStack 分行。
+            WeatherCard(title: "生活指数", systemImage: "list.bullet.rectangle") {
+                // 整个 grid 只包一个 NavigationLink，避免 16 个 Link 各 push 一次
                 NavigationLink {
                     LifeIndicesFullView(indices: indices)
                 } label: {
                     gridRows
-                        .padding(.vertical, 6)
                 }
                 .buttonStyle(.plain)
             }
-            // 卡片自带背景，去掉 List 行的默认留白与背景
-            .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-            .listRowBackground(Color.clear)
         }
     }
 
@@ -370,16 +384,16 @@ struct LifeIndicesSection: View {
         HStack(spacing: 10) {
             Image(systemName: Self.symbol(for: index.type))
                 .font(.system(size: 18))
-                .foregroundStyle(.tint)
+                .foregroundStyle(.white.opacity(0.9))
                 .frame(width: 24)
             VStack(alignment: .leading, spacing: 2) {
                 Text(Self.shortName(type: index.type, name: index.name))
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.white.opacity(0.6))
                     .lineLimit(1)
                 Text(index.category ?? "--")
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
@@ -389,7 +403,7 @@ struct LifeIndicesSection: View {
         .padding(.vertical, 10)
         // 定高：名称一行、等级一行，两列卡片才对得齐（否则长名换行会把整排顶歪）
         .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 12))
+        .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
     }
 
     /// 卡片窄，「运动指数」去掉后缀只留「运动」，给 category 留出空间。
