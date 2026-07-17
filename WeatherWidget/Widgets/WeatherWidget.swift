@@ -42,7 +42,7 @@ struct Provider: TimelineProvider {
         Task {
             let base = await loadEntry()
 
-            let interval = 30
+            let interval = 60   // 60 分钟刷一次：小组件全天候刷新是上游调用主要来源，按小时更新足够
             let startDate = Date()
             let entries: [SimpleEntry] = (0 ..< 48).map { offset in
                 let entryDate = Calendar.current.date(byAdding: .minute, value: offset * interval, to: startDate)!

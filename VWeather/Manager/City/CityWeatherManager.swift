@@ -76,6 +76,15 @@ class CityWeatherManager {
         await refreshDetailed(for: city, force: force).snapshot
     }
 
+    /// 按需取「逐小时空气质量」—— 它不在常驻请求里（省上游），用户在首页点开时才取。
+    /// 失败返回 nil。后端仍按资源缓存，多是命中。
+    func loadAirHourly(for city: CityModel) async -> [AirQuality]? {
+        guard let lat = city.latitude, let lng = city.longitude else { return nil }
+        let location = CLLocation(latitude: lat, longitude: lng)
+        let report = try? await VHLWeatherAPI.shared.fetch(for: location, resources: ["air-hourly"])
+        return report?.airHourly
+    }
+
     /// 同 `refresh`，但一并返回失败原因与是否降级，供重试与 UI 提示使用。
     @discardableResult
     func refreshDetailed(for city: CityModel, force: Bool = false) async -> WeatherRefreshResult {
@@ -92,7 +101,9 @@ class CityWeatherManager {
             return WeatherRefreshResult(snapshot: cached)   // 相近且新鲜 → 直接复用，不请求
         }
 
-        let (report, error) = await Self.fetchReport(location)
+        // 分钟降水按需请求：仅在上一份报告显示可能降水时才带上，避免常态高频拉一项多数时候用不上的资源。
+        let (report, error) = await Self.fetchReport(location,
+                                                     includeMinutely: Self.precipLikely(cached?.weather))
 
         var snap = cached ?? CityWeatherSnapshot()
         if snap.weatherKey == nil {
@@ -153,10 +164,24 @@ class CityWeatherManager {
 
     /// 返回 (报告, 错误)。两者不会同时为 nil：
     /// 拿到任一数据源的数据就返回它，全都失败才返回错误。
-    private static func fetchReport(_ location: CLLocation) async -> (WeatherReport?, Error?) {
+    /// 是否可能降水 —— 决定这次刷新要不要带上分钟降水。
+    /// 判据用**上一份缓存报告**：now 正在降水，或近 3 小时逐小时有降水概率/量。
+    /// 没有缓存判据时保守返回 true（首次加载先带上，之后按实况收敛）。
+    private static func precipLikely(_ report: WeatherReport?) -> Bool {
+        guard let report else { return true }
+        if let p = report.now?.precipitation, p > 0 { return true }
+        if report.now?.condition?.isPrecipitation == true { return true }
+        return (report.hourly ?? []).prefix(3).contains {
+            ($0.precipitationChance ?? 0) >= 30 || ($0.precipitationAmount ?? 0) > 0
+        }
+    }
+
+    private static func fetchReport(_ location: CLLocation,
+                                    includeMinutely: Bool) async -> (WeatherReport?, Error?) {
         var primaryError: Error?
         do {
-            let report = try await VHLWeatherAPI.shared.report(for: location)
+            let report = try await VHLWeatherAPI.shared.report(for: location,
+                                                               includeMinutely: includeMinutely)
             // 后台返回 200 但各项全空 —— 视同失败。把一屏空白当成「成功」
             // 会让兜底路径永远走不到，而用户看到的就是个坏掉的 App。
             if !report.isEmpty {

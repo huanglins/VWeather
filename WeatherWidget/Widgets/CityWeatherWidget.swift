@@ -100,13 +100,13 @@ struct CityWeatherProvider: AppIntentTimelineProvider {
                             policy: .after(Date().addingTimeInterval(60 * 60)))
         }
 
-        // 与主 App 共享节流（30 分钟）与缓存，不会因为多一个小组件就多打上游
+        // 与主 App 共享缓存，不会因为多一个小组件就多打上游
         let snap = await CityWeatherManager.manager.refresh(for: city)
         let e = entry(city, snap)
 
-        // 30 分钟后再刷。给一条 entry 即可 —— 卡片上没有随时间变化的内容，
-        // 排 48 条只是让系统白存一堆一模一样的快照。
-        return Timeline(entries: [e], policy: .after(Date().addingTimeInterval(30 * 60)))
+        // 60 分钟后再刷。小组件全天候刷新是上游调用的主要来源，天气组件按小时更新足够，
+        // 拉长到 1 小时可近乎减半小组件驱动的请求量。给一条 entry 即可 —— 卡片无随时间变化的内容。
+        return Timeline(entries: [e], policy: .after(Date().addingTimeInterval(60 * 60)))
     }
 
     /// 决定显示哪个城市。

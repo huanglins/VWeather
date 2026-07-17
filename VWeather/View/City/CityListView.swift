@@ -184,10 +184,9 @@ struct CityListView: View {
             .foregroundStyle(.white.opacity(0.5))
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            // 毛玻璃而非不透明底：卡片从栏下滚过时能透出模糊的色块，
-            // 保留层次感。safeAreaInset 已经给列表留出了底部空间，
-            // 最后一张卡仍能完整滚上来，不会被永久挡住。
-            .background(.ultraThinMaterial, in: Capsule())
+            // 半透明底而非不透明：卡片从栏下滚过时能透出模糊色块，保留层次感。
+            // iOS 26 用液态玻璃（随下方内容折射流动），更早回退毛玻璃。
+            .modifier(SearchBarGlass())
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 8)
@@ -309,5 +308,17 @@ private struct CityCard: View {
                                startPoint: .topLeading, endPoint: .bottomTrailing)
             )
             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+}
+
+/// 底部搜索栏的半透明背景：iOS 26 用液态玻璃（可交互、随下方内容流动折射），
+/// 更早系统回退毛玻璃 —— 两者都能透出下方滚过的卡片色块，保留层次。
+private struct SearchBarGlass: ViewModifier {
+    func body(content: Content) -> some View {
+        if #available(iOS 26.0, *) {
+            content.glassEffect(.regular.interactive(), in: Capsule())
+        } else {
+            content.background(.ultraThinMaterial, in: Capsule())
+        }
     }
 }

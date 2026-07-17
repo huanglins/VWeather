@@ -21,6 +21,9 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var locationError: VHLLocationError?
     @State private var locating = false
+    /// 逐小时空气质量：不在常驻请求里，用户点开才按需取（省上游）。
+    @State private var airHourly: [AirQuality]?
+    @State private var airHourlyLoading = false
 
     /// 当前天况与昼夜 —— 决定背景色调
     private var condition: VWCondition { snapshot?.weather?.now?.condition ?? .unknown }
@@ -117,7 +120,8 @@ struct ContentView: View {
 
                 if let air = report?.air {
                     airCard(air)
-                    let airHours = report?.airHourly ?? []
+                    // 逐小时优先用按需加载到的；report 里默认不含 air-hourly（已移出常驻请求）
+                    let airHours = airHourly ?? report?.airHourly ?? []
                     let airDays = report?.airDaily ?? []
                     if !airHours.isEmpty || !airDays.isEmpty {
                         airForecastCard(hours: airHours, days: airDays)
@@ -398,10 +402,39 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 10) {
                 if !hours.isEmpty {
                     AirHourlyChart(hours: hours)
+                } else {
+                    // 逐小时 AQI 按需加载：不塞进每次刷新的常驻请求，点开才取
+                    Button(action: loadAirHourly) {
+                        HStack(spacing: 6) {
+                            if airHourlyLoading {
+                                ProgressView().controlSize(.small).tint(.white)
+                            } else {
+                                Image(systemName: "chart.line.uptrend.xyaxis")
+                            }
+                            Text(airHourlyLoading ? "加载中…" : "查看逐小时空气质量")
+                        }
+                        .font(.caption)
+                        .foregroundStyle(.white.opacity(0.85))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(airHourlyLoading)
                 }
                 ForEach(days) { day in
                     airForecastRow(dayText(day.startTime), day)
                 }
+            }
+        }
+    }
+
+    private func loadAirHourly() {
+        guard let city = selectedCity, !airHourlyLoading else { return }
+        airHourlyLoading = true
+        Task {
+            let hours = await CityWeatherManager.manager.loadAirHourly(for: city)
+            await MainActor.run {
+                airHourly = hours
+                airHourlyLoading = false
             }
         }
     }
@@ -676,6 +709,7 @@ struct ContentView: View {
     private func reload() {
         let city = CityManager.manager.selectedCity
         selectedCity = city
+        airHourly = nil        // 换城市：逐小时 AQI 需为新城重新按需加载
         if city != nil { locationError = nil }   // 已有可显示城市，清除定位错误提示
         guard let city = city else {
             snapshot = nil
