@@ -294,7 +294,7 @@ struct SunEventWidgetView: View {
                 .minimumScaleFactor(0.6)
                 .lineLimit(1)
 
-            Spacer(minLength: 6)
+            Spacer(minLength: 48)
 
             Text(entry.label)
                 .font(.footnote.weight(.semibold))

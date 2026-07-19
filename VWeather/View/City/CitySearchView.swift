@@ -212,8 +212,18 @@ struct CitySearchView: View {
         searching = true
         searched = true
         let results = await CityManager.manager.searchCities(keyword)
+        let cur = currentLocation
         await MainActor.run {
-            searchResults = results
+            // 优先按距离排序：离当前定位近的排在前面，没有定位时保持 CLGeocoder 返回顺序
+            if let cur {
+                searchResults = results.sorted { a, b in
+                    let da = cur.distance(from: a.location)
+                    let db = cur.distance(from: b.location)
+                    return da < db
+                }
+            } else {
+                searchResults = results
+            }
             searching = false
         }
     }

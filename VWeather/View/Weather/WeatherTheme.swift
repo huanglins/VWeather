@@ -10,6 +10,17 @@
 
 import SwiftUI
 
+//
+//  VWDesignSystem.swift
+//  VWeather
+//
+//  设计系统：集中管理字体、颜色、间距、圆角等视觉 token。
+//  所有面板共用同一套值，修改一处即可全局生效。
+//
+//  背景恒为有色深底，文字固定白色系，不跟随浅色/深色模式。
+//
+
+import SwiftUI
 // MARK: - 调色板
 
 enum WeatherPalette {
@@ -140,36 +151,66 @@ struct WeatherBackground: View {
 struct WeatherCard<Content: View>: View {
     var title: String? = nil
     var systemImage: String? = nil
+    /// 内容区水平内边距。设为 0 时内容顶满卡片外缘（标题仍保持 14pt）。
+    var contentHorizontalPadding: CGFloat? = nil
     @ViewBuilder var content: () -> Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if let title {
-                Label {
-                    Text(title)
-                } icon: {
-                    if let systemImage { Image(systemName: systemImage) }
+        if let hPad = contentHorizontalPadding {
+            VStack(alignment: .leading, spacing: VWDesign.Spacing.cardStack) {
+                if let title {
+                    Label {
+                        Text(title)
+                    } icon: {
+                        if let systemImage { Image(systemName: systemImage) }
+                    }
+                    .vwCardTitle()
+                    .padding(.horizontal, VWDesign.Spacing.cardH)
                 }
-                .font(.footnote)
-                .foregroundStyle(.white.opacity(0.65))
+                content()
             }
-            content()
+            .padding(.vertical, 14)
+            .padding(.horizontal, hPad)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: VWDesign.CornerRadius.card, style: .continuous)
+                    .fill(VWDesign.Palette.cardFill)
+            )
+            .overlay(
+                // 一道极淡的描边，把卡片从背景里"托"出来。
+                // 只靠半透明填充的话，卡片落在渐变较亮的一段时边界会消失。
+                RoundedRectangle(cornerRadius: VWDesign.CornerRadius.card, style: .continuous)
+                    .stroke(VWDesign.Palette.cardStroke, lineWidth: 0.5)
+            )
+        } else {
+            VStack(alignment: .leading, spacing: VWDesign.Spacing.cardStack) {
+                if let title {
+                    Label {
+                        Text(title)
+                    } icon: {
+                        if let systemImage { Image(systemName: systemImage) }
+                    }
+                    .vwCardTitle()
+                }
+                content()
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                RoundedRectangle(cornerRadius: VWDesign.CornerRadius.card, style: .continuous)
+                    .fill(VWDesign.Palette.cardFill)
+            )
+            .overlay(
+                // 一道极淡的描边，把卡片从背景里"托"出来。
+                // 只靠半透明填充的话，卡片落在渐变较亮的一段时边界会消失。
+                RoundedRectangle(cornerRadius: VWDesign.CornerRadius.card, style: .continuous)
+                    .stroke(VWDesign.Palette.cardStroke, lineWidth: 0.5)
+            )
         }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(.white.opacity(0.14))
-        )
-        .overlay(
-            // 一道极淡的描边，把卡片从背景里"托"出来。
-            // 只靠半透明填充的话，卡片落在渐变较亮的一段时边界会消失。
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .stroke(.white.opacity(0.16), lineWidth: 0.5)
-        )
     }
 }
 
+/// 卡片里的一个小指标（网格用）。
 /// 卡片里的一个小指标（网格用）。
 struct MetricCard<Content: View>: View {
     let title: String

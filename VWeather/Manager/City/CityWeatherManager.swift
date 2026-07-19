@@ -31,7 +31,15 @@ class CityWeatherManager {
     /// 「相近共享」半径：两地点相距在此距离内视为同一处天气，共用一条快照、只请求一次。
     /// 覆盖「同一个家」的当前定位（GPS 点）与手动城市（地理编码中心）常见的 1–3km 偏差，
     /// 又不至于把用户特意分开添加的相邻城区并成一份。
-    static let shareRadius: CLLocationDistance = 3000   // 3km
+   static let shareRadius: CLLocationDistance = 3000   // 3km
+
+    /// 逐小时空气质量缓存，按 cityKey 索引。避免已请求过的数据在视图重建后丢失。
+    private var airHourlyCache: [String: [AirQuality]] = [:]
+
+    /// 返回缓存的逐小时空气质量（不发起网络请求）。
+    func cachedAirHourly(for city: CityModel) -> [AirQuality]? {
+        airHourlyCache[city.cityKey ?? ""]
+    }
 
     /// 读取城市的天气缓存快照（用于切换时秒显 / 离线）。
     /// 按「相近」取：返回半径内**最近**的一条快照，使当前定位与坐标相近的手动城市共用同一条。
@@ -80,9 +88,12 @@ class CityWeatherManager {
     /// 失败返回 nil。后端仍按资源缓存，多是命中。
     func loadAirHourly(for city: CityModel) async -> [AirQuality]? {
         guard let lat = city.latitude, let lng = city.longitude else { return nil }
+        let key = city.cityKey ?? ""
         let location = CLLocation(latitude: lat, longitude: lng)
         let report = try? await VHLWeatherAPI.shared.fetch(for: location, resources: ["air-hourly"])
-        return report?.airHourly
+        let hours = report?.airHourly
+        if let hours { airHourlyCache[key] = hours }
+        return hours
     }
 
     /// 同 `refresh`，但一并返回失败原因与是否降级，供重试与 UI 提示使用。

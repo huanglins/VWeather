@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		BA7C61211043919FD7E7293C /* VWDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB7206623D42CD9D51A01F5E /* VWDesignSystem.swift */; };
 		BF278F472C738AAE00041FD4 /* VHLLocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF278F442C738AAE00041FD4 /* VHLLocationManager.swift */; };
 		BF278F482C738AAE00041FD4 /* VHLAppleWeather.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF278F432C738AAE00041FD4 /* VHLAppleWeather.swift */; };
 		BF278F492C738AAE00041FD4 /* VHLNetworkMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF278F452C738AAE00041FD4 /* VHLNetworkMonitor.swift */; };
@@ -22,6 +23,9 @@
 		BF72F7A53004F9FE006556E7 /* VWeather.storekit in Resources */ = {isa = PBXBuildFile; fileRef = BF72F7A43004F9FE006556E7 /* VWeather.storekit */; };
 		BF97F3953009318B0048D73F /* CityWeatherCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF97F3943009318B0048D73F /* CityWeatherCard.swift */; };
 		BF97F3963009318B0048D73F /* CityWeatherCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF97F3943009318B0048D73F /* CityWeatherCard.swift */; };
+		BF97F398300D253A0048D73F /* VWDesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB7206623D42CD9D51A01F5E /* VWDesignSystem.swift */; };
+		BF97F39A300D2AAB0048D73F /* WeatherMainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF97F399300D2AAB0048D73F /* WeatherMainView.swift */; };
+		BF97F39D300D2B350048D73F /* LocationErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF97F39C300D2B350048D73F /* LocationErrorView.swift */; };
 		BFD4AA302C72DBE60001C5D6 /* VWeatherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFD4AA2F2C72DBE60001C5D6 /* VWeatherApp.swift */; };
 		BFD4AA322C72DBE60001C5D6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFD4AA312C72DBE60001C5D6 /* ContentView.swift */; };
 		BFD4AA342C72DBE70001C5D6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BFD4AA332C72DBE70001C5D6 /* Assets.xcassets */; };
@@ -172,6 +176,8 @@
 		BF278F452C738AAE00041FD4 /* VHLNetworkMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VHLNetworkMonitor.swift; sourceTree = "<group>"; };
 		BF72F7A43004F9FE006556E7 /* VWeather.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = VWeather.storekit; sourceTree = "<group>"; };
 		BF97F3943009318B0048D73F /* CityWeatherCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityWeatherCard.swift; sourceTree = "<group>"; };
+		BF97F399300D2AAB0048D73F /* WeatherMainView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherMainView.swift; sourceTree = "<group>"; };
+		BF97F39C300D2B350048D73F /* LocationErrorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationErrorView.swift; sourceTree = "<group>"; };
 		BFD4AA2C2C72DBE60001C5D6 /* VWeather.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VWeather.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BFD4AA2F2C72DBE60001C5D6 /* VWeatherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VWeatherApp.swift; sourceTree = "<group>"; };
 		BFD4AA312C72DBE60001C5D6 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -260,6 +266,7 @@
 		FADE00000000000000F30001 /* CityWeatherWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CityWeatherWidget.swift; sourceTree = "<group>"; };
 		FADE00000000000000F40001 /* SunEventWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SunEventWidget.swift; sourceTree = "<group>"; };
 		FADE00030000000000000001 /* VHLSunMoonManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VHLSunMoonManager.swift; sourceTree = "<group>"; };
+		FB7206623D42CD9D51A01F5E /* VWDesignSystem.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = VWDesignSystem.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -290,6 +297,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		B85306BC4C9904AF3D1BD735 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Config;
+			sourceTree = "<group>";
+		};
 		BF278F3E2C738AAE00041FD4 /* Manager */ = {
 			isa = PBXGroup;
 			children = (
@@ -360,6 +374,7 @@
 		BF72F76A3004B486006556E7 /* View */ = {
 			isa = PBXGroup;
 			children = (
+				BF97F39B300D2AE10048D73F /* Main */,
 				BFDE2225300930F100D9D1F1 /* Weather */,
 				BFDE22263009310800D9D1F1 /* City */,
 				BF97F397300931990048D73F /* Setting */,
@@ -372,6 +387,7 @@
 			isa = PBXGroup;
 			children = (
 				FADE0000000000000000111B /* AppSettings.swift */,
+				FB7206623D42CD9D51A01F5E /* VWDesignSystem.swift */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -421,6 +437,21 @@
 			path = Setting;
 			sourceTree = "<group>";
 		};
+		BF97F39B300D2AE10048D73F /* Main */ = {
+			isa = PBXGroup;
+			children = (
+				BF97F39C300D2B350048D73F /* LocationErrorView.swift */,
+			);
+			path = Main;
+			sourceTree = "<group>";
+		};
+		BF97F39E300D2E0C0048D73F /* WeatherPanelView */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = WeatherPanelView;
+			sourceTree = "<group>";
+		};
 		BFD4AA232C72DBE60001C5D6 = {
 			isa = PBXGroup;
 			children = (
@@ -428,6 +459,7 @@
 				BFD4AA662C72DC7A0001C5D6 /* WeatherWidget */,
 				BFD4AA612C72DC7A0001C5D6 /* Frameworks */,
 				BFD4AA2D2C72DBE60001C5D6 /* Products */,
+				B85306BC4C9904AF3D1BD735 /* Config */,
 			);
 			sourceTree = "<group>";
 		};
@@ -549,6 +581,8 @@
 			children = (
 				FADE00000000000000EE0001 /* WeatherTheme.swift */,
 				FADE00000000000000AA0004 /* WeatherSectionViews.swift */,
+				BF97F39E300D2E0C0048D73F /* WeatherPanelView */,
+				BF97F399300D2AAB0048D73F /* WeatherMainView.swift */,
 			);
 			path = Weather;
 			sourceTree = "<group>";
@@ -881,6 +915,7 @@
 				FADE0000000000000000120F /* VHLCKRecordEncoder.swift in Sources */,
 				FADE00000000000000001210 /* VHLCKRecordEncodingError.swift in Sources */,
 				FADE00000000000000001211 /* VHLCKRecordKeyedEncodingContainer.swift in Sources */,
+				BF97F39A300D2AAB0048D73F /* WeatherMainView.swift in Sources */,
 				FADE00000000000000001212 /* VHLCKRecordSingleValueEncoder.swift in Sources */,
 				FADE00000000000000001213 /* VHLCKDataType.swift in Sources */,
 				FADE00000000000000001214 /* VHLCKErrorHandler.swift in Sources */,
@@ -897,6 +932,7 @@
 				FADE00000000000000000203 /* VHLSQLiteObject+Migration.swift in Sources */,
 				FADE00000000000000000204 /* VHLSQLiteProperty.swift in Sources */,
 				FADE00000000000000000205 /* VHLSQLiteDataBase.swift in Sources */,
+				BF97F39D300D2B350048D73F /* LocationErrorView.swift in Sources */,
 				FADE00000000000000000206 /* VHLSQliteCodable.swift in Sources */,
 				FADE00000000000000000207 /* VHLDictionaryDecoder.swift in Sources */,
 				FADE00000000000000000208 /* VHLSQLiteTool.swift in Sources */,
@@ -931,6 +967,7 @@
 				BFD4AAC32C72E15C0001C5D6 /* Tools.swift in Sources */,
 				BFD4AAAE2C72E00A0001C5D6 /* UserDefaults+VHL.swift in Sources */,
 				FADE00030000000000000002 /* VHLSunMoonManager.swift in Sources */,
+				BA7C61211043919FD7E7293C /* VWDesignSystem.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -977,6 +1014,7 @@
 				FADE00030000000000000003 /* VHLSunMoonManager.swift in Sources */,
 				BFD4AAC82C72E15C0001C5D6 /* ShakeAnimationView.swift in Sources */,
 				BFD4AAD62C72E5FB0001C5D6 /* Stripes.swift in Sources */,
+				BF97F398300D253A0048D73F /* VWDesignSystem.swift in Sources */,
 				BFD4AA6C2C72DC7A0001C5D6 /* WeatherWidget.swift in Sources */,
 				BFD4AACD2C72E1670001C5D6 /* Color+VHL.swift in Sources */,
 			);

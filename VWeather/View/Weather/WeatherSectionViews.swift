@@ -98,15 +98,15 @@ struct HourlyForecastSection: View {
         return report.isNight(at: t)
     }
 
-    var body: some View {
-        WeatherCard(title: "小时天气预报", systemImage: "clock") {
+       var body: some View {
+        WeatherCard(title: "小时天气预报", systemImage: "clock", contentHorizontalPadding: 0) {
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: 18) {
-                    ForEach(Array(hours.enumerated()), id: \.element.id) { index, hour in
-                        VStack(spacing: 6) {
+                HStack(alignment: .top, spacing: VWDesign.Spacing.hourlyGap) {
+                    ForEach(hours) { hour in
+                        VStack(spacing: VWDesign.Spacing.hourlyStack) {
                             Text(QWeatherFormat.hourText(hour.time))
                                 .font(.caption2)
-                                .foregroundStyle(.white.opacity(0.65))
+                                .foregroundStyle(VWDesign.Palette.secondary)
                                 .lineLimit(1)
 
                             Image(systemName: (hour.condition ?? .unknown).symbol(isNight: isNight(hour)))
@@ -118,25 +118,34 @@ struct HourlyForecastSection: View {
                             if let pop = hour.precipitationChance, pop > 0 {
                                 Text("\(Int(pop))%")
                                     .font(.caption2)
-                                    .foregroundStyle(.white.opacity(0.75))
+                                    .foregroundStyle(VWDesign.Palette.tertiary)
                             } else {
                                 Text(" ").font(.caption2)
                             }
 
                             Text(AppSettings.shared.tempText(hour.temperature))
-                                .font(.footnote.weight(.semibold))
-                                .foregroundStyle(.white)
+                                .font(VWDesign.Typography.footnoteSemibold)
+                                .foregroundStyle(VWDesign.Palette.primary)
                         }
-                        // 首格内容左对齐，贴到卡片 14pt 内边距，与其他左对齐面板齐平；
-                        // 其余格居中，保持逐小时的列状节奏。
-                        .frame(minWidth: 44, alignment: index == 0 ? .leading : .center)
+                        //.frame(width: 44)
+                        .padding(.horizontal, 8)
                     }
                 }
-                .padding(.vertical, 2)
+                .padding(.horizontal, 6)
+                .padding(.vertical, VWDesign.Spacing.scrollV)
             }
-            // 用卡片自身的 14 内边距把滚动区左右**对称**框住：静止时首/末格两侧间距一致，
-            // 滚动时也在两侧 14pt 处对称裁切。（不做贴边溢出——溢出内容会让静止时右侧
-            // 无间距、与左侧不一致，那正是之前的问题。）
+            .mask(
+                LinearGradient(
+                    stops: [
+                        .init(color: .clear, location: 0),
+                        .init(color: .black, location: 0.04),
+                        .init(color: .black, location: 0.96),
+                        .init(color: .clear, location: 1),
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
         }
     }
 }
@@ -158,22 +167,21 @@ struct DailyForecastSection: View {
 
     var body: some View {
         WeatherCard(title: "\(days.count) 日天气预报", systemImage: "calendar") {
-          VStack(spacing: 10) {
+          VStack(spacing: 5) {
             ForEach(days) { day in
-                HStack(spacing: 10) {
+                HStack(spacing: 5) {
                     Text(Self.weekdayText(day.date))
-                        .font(.subheadline)
-                        .foregroundStyle(.white)
+                        .font(.system(size: 14, weight: .semibold))
                         .frame(width: 42, alignment: .leading)
 
                     Image(systemName: (day.condition ?? .unknown).symbol())
                         .symbolRenderingMode(.multicolor)
-                        .font(.system(size: 17))
+                        .font(.system(size: 15, weight: .semibold))
                         .frame(width: 24)
 
                     // 天况文案：设计里日期与温度之间有一列文字
                     Text(day.conditionText ?? "--")
-                        .font(.caption)
+                        .font(VWDesign.Typography.caption)
                         .foregroundStyle(.white.opacity(0.8))
                         .lineLimit(1)
                         .frame(width: 44, alignment: .leading)
@@ -370,9 +378,9 @@ struct LifeIndicesSection: View {
         let rows = stride(from: 0, to: indices.count, by: 2).map {
             Array(indices[$0..<min($0 + 2, indices.count)])
         }
-        return VStack(spacing: 10) {
+        return VStack(spacing: 5) {
             ForEach(rows.indices, id: \.self) { i in
-                HStack(spacing: 10) {
+                HStack(spacing: 5) {
                     ForEach(rows[i]) { index in
                         card(index)
                     }
@@ -386,7 +394,7 @@ struct LifeIndicesSection: View {
     }
 
     private func card(_ index: LifeIndex) -> some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 5) {
             Image(systemName: Self.symbol(for: index.type))
                 .font(.system(size: 18))
                 .foregroundStyle(.white.opacity(0.9))
