@@ -17,6 +17,7 @@ struct WeatherMainView: View {
 
     @State private var airHourly: [AirQuality]?
     @State private var airHourlyLoading = false
+    @State private var alertsExpanded = false
 
     private var condition: VWCondition { snapshot?.weather?.now?.condition ?? .unknown }
     private var isNight: Bool { snapshot?.sun?.isNight ?? false }
@@ -243,9 +244,11 @@ struct WeatherMainView: View {
     // MARK: - 预警
 
     private func alertsCard(_ alerts: [WeatherAlertInfo]) -> some View {
-        WeatherCard {
+        let visibleAlerts = alertsExpanded ? alerts : Array(alerts.prefix(3))
+
+        return WeatherCard {
             VStack(spacing: 10) {
-                ForEach(alerts) { alert in
+                ForEach(visibleAlerts) { alert in
                     NavigationLink { alertDetail(alert) } label: {
                         alertRow(alert)
                             // 行里有 Spacer，那段是透明的、默认不参与 hit-test ——
@@ -255,11 +258,41 @@ struct WeatherMainView: View {
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    if alert.id != alerts.last?.id {
-                        Divider().overlay(.white.opacity(0.15))
+                    .transition(
+                        .asymmetric(
+                            insertion: .opacity.combined(with: .move(edge: .top)),
+                            removal: .opacity.combined(with: .scale(scale: 0.96, anchor: .top))
+                        )
+                    )
+                    if alert.id != visibleAlerts.last?.id || alerts.count > 3 {
+                        Divider()
+                            .overlay(.white.opacity(0.15))
+                            .transition(.opacity)
                     }
                 }
+
+                if alerts.count > 3 {
+                    Button {
+                        withAnimation(.snappy(duration: 0.38, extraBounce: 0.08)) {
+                            alertsExpanded.toggle()
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Text(alertsExpanded ? "收起" : "展开其余 \(alerts.count - 3) 条")
+                                .contentTransition(.opacity)
+                            Image(systemName: "chevron.down")
+                                .font(.caption2.weight(.semibold))
+                                .rotationEffect(.degrees(alertsExpanded ? 180 : 0))
+                        }
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(.white.opacity(0.75))
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                }
             }
+            .animation(.snappy(duration: 0.38, extraBounce: 0.08), value: alertsExpanded)
         }
     }
 
@@ -840,5 +873,3 @@ struct PressureGauge: View {
         }
     }
 }
-
-
