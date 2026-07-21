@@ -97,12 +97,18 @@ struct WeatherMainView: View {
 
                 HStack(spacing: 8) {
                     Text(now?.conditionText ?? "--")
+                        .font(VWDesign.Typography.subheadMedium)
                         .foregroundStyle(.white.opacity(0.9))
+                    
                     if let high = today?.tempMax, let low = today?.tempMin {
-                        Text("|").foregroundStyle(.white.opacity(0.35))
+                        Text("|")
+                            .font(VWDesign.Typography.subheadMedium)
+                            .foregroundStyle(.white.opacity(0.35))
                         Label(tempText(low), systemImage: "arrowtriangle.down.fill")
+                            .font(VWDesign.Typography.subheadMedium)
                             .foregroundStyle(.white.opacity(0.8))
                         Label(tempText(high), systemImage: "arrowtriangle.up.fill")
+                            .font(VWDesign.Typography.subheadMedium)
                             .foregroundStyle(.white.opacity(0.8))
                     }
                 }
@@ -195,6 +201,9 @@ struct WeatherMainView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     MetricValue(value: beaufort(now?.windSpeed).map { "\($0)" } ?? "--",
                                 unit: "级")
+                    
+                    Spacer()
+                    
                     VStack(spacing: 3) {
                         metricLine("风速", now?.windSpeed.map { String(format: "%.0f km/h", $0) } ?? "--")
                         metricLine("风向", windText(now?.windDirectionText, now?.windDirection))
@@ -235,9 +244,9 @@ struct WeatherMainView: View {
 
     private func metricLine(_ title: String, _ value: String) -> some View {
         HStack {
-            Text(title).font(.caption).foregroundStyle(.white.opacity(0.6))
+            Text(title).font(VWDesign.Typography.caption).foregroundStyle(.white.opacity(0.6))
             Spacer()
-            Text(value).font(.caption).foregroundStyle(.white.opacity(0.9))
+            Text(value).font(VWDesign.Typography.caption).foregroundStyle(.white.opacity(0.9))
         }
     }
 

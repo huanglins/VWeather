@@ -248,12 +248,12 @@ struct MetricValue: View {
                 .foregroundStyle(.white)
             if let unit {
                 Text(unit)
-                    .font(.footnote)
+                    .font(VWDesign.Typography.footnote)
                     .foregroundStyle(.white.opacity(0.75))
             }
             if let caption {
                 Text(caption)
-                    .font(.subheadline.weight(.medium))
+                    .font(VWDesign.Typography.subheadMedium)
                     .foregroundStyle(.white.opacity(0.9))
             }
         }

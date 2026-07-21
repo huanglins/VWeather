@@ -115,13 +115,13 @@ struct HourlyForecastSection: View {
                                 .frame(height: 24)
 
                             // 只在有降水可能时显示概率，否则每格都挂个 0% 是纯噪音
-                            if let pop = hour.precipitationChance, pop > 0 {
-                                Text("\(Int(pop))%")
-                                    .font(.caption2)
-                                    .foregroundStyle(VWDesign.Palette.tertiary)
-                            } else {
-                                Text(" ").font(.caption2)
-                            }
+//                            if let pop = hour.precipitationChance, pop > 0 {
+//                                Text("\(Int(pop))%")
+//                                    .font(.caption2)
+//                                    .foregroundStyle(VWDesign.Palette.tertiary)
+//                            } else {
+//                                Text(" ").font(.caption2)
+//                            }
 
                             Text(AppSettings.shared.tempText(hour.temperature))
                                 .font(VWDesign.Typography.footnoteSemibold)
@@ -378,9 +378,9 @@ struct LifeIndicesSection: View {
         let rows = stride(from: 0, to: indices.count, by: 2).map {
             Array(indices[$0..<min($0 + 2, indices.count)])
         }
-        return VStack(spacing: 5) {
+        return VStack(spacing: 8) {
             ForEach(rows.indices, id: \.self) { i in
-                HStack(spacing: 5) {
+                HStack(spacing: 8) {
                     ForEach(rows[i]) { index in
                         card(index)
                     }
@@ -394,18 +394,20 @@ struct LifeIndicesSection: View {
     }
 
     private func card(_ index: LifeIndex) -> some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 8) {
             Image(systemName: Self.symbol(for: index.type))
                 .font(.system(size: 18))
                 .foregroundStyle(.white.opacity(0.9))
                 .frame(width: 24)
+            
             VStack(alignment: .leading, spacing: 2) {
                 Text(Self.shortName(type: index.type, name: index.name))
-                    .font(.caption)
+                    .font(VWDesign.Typography.caption)
                     .foregroundStyle(.white.opacity(0.6))
                     .lineLimit(1)
+                
                 Text(index.category ?? "--")
-                    .font(.subheadline.weight(.medium))
+                    .font(VWDesign.Typography.subheadline)
                     .foregroundStyle(.white)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)

@@ -73,7 +73,7 @@ enum VWDesign {
         /// 逐小时列表列间距
         static let hourlyGap: CGFloat = 5
         /// 逐小时列表列内垂直间距
-        static let hourlyStack: CGFloat = 6
+        static let hourlyStack: CGFloat = 8
     }
 
     // MARK: 圆角
@@ -101,13 +101,13 @@ enum VWDesign {
 
         // 正文层级
         static let headline = Font.system(size: 17, weight: .semibold)
-        static let subheadline = Font.system(size: 15, weight: .regular)
+        static let subheadline = Font.system(size: 14, weight: .medium)
         static let subheadMedium = Font.system(size: 15, weight: .medium)
         static let callout = Font.system(size: 16, weight: .regular)
         static let calloutSemibold = Font.system(size: 16, weight: .semibold)
 
         // 小字
-        static let footnote = Font.system(size: 13, weight: .regular)
+        static let footnote = Font.system(size: 13, weight: .medium)
         static let footnoteSemibold = Font.system(size: 13, weight: .semibold)
         static let caption = Font.system(size: 12, weight: .medium)
         static let caption2 = Font.system(size: 11, weight: .regular)
