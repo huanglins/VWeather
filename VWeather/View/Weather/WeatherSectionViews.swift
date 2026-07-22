@@ -169,58 +169,56 @@ struct DailyForecastSection: View {
         WeatherCard(title: "\(days.count) 日天气预报", systemImage: "calendar") {
           VStack(spacing: 5) {
             ForEach(days) { day in
-                HStack(spacing: 5) {
-                    Text(Self.weekdayText(day.date))
-                        .font(.system(size: 14, weight: .semibold))
-                        .frame(width: 42, alignment: .leading)
+                Color.clear
+                    .frame(height: 26)
+                    .overlay(
+                        GeometryReader { geo in
+                            HStack(spacing: 0) {
+                                // 左：星期（30%）
+                                Text(Self.weekdayText(day.date))
+                                    .font(VWDesign.Typography.footnoteSemibold)
+                                    .foregroundStyle(VWDesign.Palette.primary)
+                                    .frame(width: geo.size.width * 0.3, alignment: .leading)
 
-                    Image(systemName: (day.condition ?? .unknown).symbol())
-                        .symbolRenderingMode(.multicolor)
-                        .font(.system(size: 15, weight: .semibold))
-                        .frame(width: 24)
+                                // 中：天况图标 + 文案（40%）
+                                HStack(spacing: 8) {
+                                    Image(systemName: (day.condition ?? .unknown).symbol())
+                                        .symbolRenderingMode(.multicolor)
+                                        .font(.system(size: 16, weight: .bold))
+                                        .frame(width: 24)
+                                    
+                                    Text(day.conditionText ?? "--")
+                                        .font(VWDesign.Typography.caption)
+                                        .foregroundStyle(VWDesign.Palette.muted)
+                                        .lineLimit(1)
+                                }
+                                .frame(width: geo.size.width * 0.4, alignment: .leading)
 
-                    // 天况文案：设计里日期与温度之间有一列文字
-                    Text(day.conditionText ?? "--")
-                        .font(VWDesign.Typography.caption)
-                        .foregroundStyle(.white.opacity(0.8))
-                        .lineLimit(1)
-                        .frame(width: 44, alignment: .leading)
+                                // 右：温度区间（30%）
+                                HStack(spacing: 4) {
+                                    Text(AppSettings.shared.tempText(day.tempMin))
+                                        .font(VWDesign.Typography.footnote)
+                                        .foregroundStyle(VWDesign.Palette.dim)
 
-                    // 降水概率：没有就留空，不占视觉
-                    Group {
-                        if let pop = day.precipitationChance, pop > 0 {
-                            Text("\(Int(pop))%")
-                        } else {
-                            Text(" ")
+                                    if let r = range, let lo = day.tempMin, let hi = day.tempMax {
+                                        TempRangeBar(low: lo, high: hi, scaleMin: r.min, scaleMax: r.max)
+                                            .frame(height: 4)
+                                    } else {
+                                        Spacer()
+                                    }
+
+                                    Text(AppSettings.shared.tempText(day.tempMax))
+                                        .font(VWDesign.Typography.footnoteSemibold)
+                                        .foregroundStyle(VWDesign.Palette.primary)
+                                }
+                                .frame(width: geo.size.width * 0.3, alignment: .trailing)
+                            }
                         }
-                    }
-                    .font(.caption2)
-                    .foregroundStyle(.white.opacity(0.75))
-                    .frame(width: 30, alignment: .leading)
-
-                    Text(AppSettings.shared.tempText(day.tempMin))
-                        .font(.footnote)
-                        .foregroundStyle(.white.opacity(0.7))
-                        .frame(width: 34, alignment: .trailing)
-
-                    if let r = range, let lo = day.tempMin, let hi = day.tempMax {
-                        TempRangeBar(low: lo, high: hi, scaleMin: r.min, scaleMax: r.max)
-                            .frame(height: 4)
-                    } else {
-                        Spacer()
-                    }
-
-                    Text(AppSettings.shared.tempText(day.tempMax))
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .frame(width: 34, alignment: .leading)
-                }
+                    )
             }
           }
         }
     }
-
-    /// 日期形如 "2026-07-16"。今天/明天用中文词，其余用星期。
     static func weekdayText(_ raw: String?) -> String {
         guard let raw, let date = dayParser.date(from: raw) else { return raw ?? "--" }
         if Calendar.current.isDateInToday(date) { return "今天" }

@@ -93,9 +93,9 @@ enum VWDesign {
 
     enum Typography {
         // 大标题 / 主要数字
-        static let mainTemperature = Font.system(size: 72, weight: .semibold)
-        static let largeMetric = Font.system(size: 30, weight: .semibold)
-        static let gaugeValue = Font.system(size: 22, weight: .semibold)
+        static let mainTemperature = Font.system(size: 72, weight: .semibold, design: .rounded)
+        static let largeMetric = Font.system(size: 30, weight: .semibold, design: .rounded)
+        static let gaugeValue = Font.system(size: 22, weight: .semibold, design: .rounded)
         static let aqiBadge = Font.system(size: 16, weight: .semibold)
         static let aqiNumber = Font.system(size: 13, weight: .semibold)
 

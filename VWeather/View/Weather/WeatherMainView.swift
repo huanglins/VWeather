@@ -469,7 +469,7 @@ struct WeatherMainView: View {
                     .padding(.top, 8)
                 } label: {
                     Label("太阳详情", systemImage: "sun.max")
-                        .font(.footnote)
+                        .font(VWDesign.Typography.footnote)
                         .foregroundStyle(.white.opacity(0.75))
                         // 标题与展开箭头之间是 Spacer，那段默认点不动。
                         // 撑满再给个 contentShape，整条标题栏才都能点。
@@ -496,7 +496,7 @@ struct WeatherMainView: View {
                     .padding(.top, 8)
                 } label: {
                     Label("月亮详情", systemImage: "moon.stars")
-                        .font(.footnote)
+                        .font(VWDesign.Typography.footnote)
                         .foregroundStyle(.white.opacity(0.75))
                         // 标题与展开箭头之间是 Spacer，那段默认点不动。
                         // 撑满再给个 contentShape，整条标题栏才都能点。
