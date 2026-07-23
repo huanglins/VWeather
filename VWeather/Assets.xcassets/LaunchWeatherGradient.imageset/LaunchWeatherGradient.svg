@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="390" height="844" viewBox="0 0 390 844" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="weatherGradient" x1="195" y1="0" x2="195" y2="844" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4EA8F5"/>
+      <stop offset="1" stop-color="#1E6FD9"/>
+    </linearGradient>
+    <radialGradient id="weatherHighlight" cx="0" cy="0" r="1" gradientTransform="translate(265 95) rotate(103) scale(360 270)" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.20"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="390" height="844" fill="url(#weatherGradient)"/>
+  <rect width="390" height="844" fill="url(#weatherHighlight)"/>
+</svg>
