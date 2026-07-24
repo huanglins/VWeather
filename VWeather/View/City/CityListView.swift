@@ -16,9 +16,11 @@ import UIKit
 struct CityListView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
+    @ObservedObject private var iap = IAPManager.shared
 
     @State private var cities: [CityModel] = []
     @State private var showCitySearch = false
+    @State private var showMembership = false
 
     /// 各城市的快照，按 cityKey 索引。
     ///
@@ -91,6 +93,11 @@ struct CityListView: View {
                     // 卡片会一直空着直到关掉重开。
                     Task { await load(added, force: true) }
                 })
+            }
+            .sheet(isPresented: $showMembership) {
+                NavigationStack {
+                    MembershipView(showsCloseButton: true)
+                }
             }
             .onAppear {
                 cities = CityManager.manager.allCities()
@@ -173,12 +180,20 @@ struct CityListView: View {
     /// 不在这里做联想搜索，那是 CitySearchView 的事。
     private var searchBar: some View {
         Button {
-            showCitySearch = true
+            if iap.isPro {
+                showCitySearch = true
+            } else {
+                showMembership = true
+            }
         } label: {
             HStack(spacing: 8) {
-                Image(systemName: "magnifyingglass")
-                Text("搜索")
+                Image(systemName: iap.isPro ? "magnifyingglass" : "crown.fill")
+                Text(iap.isPro ? "搜索并添加城市" : "会员可添加收藏城市")
                 Spacer()
+                if !iap.isPro {
+                    Image(systemName: "lock.fill")
+                        .font(.caption)
+                }
             }
             .font(.callout)
             .foregroundStyle(.white.opacity(0.5))

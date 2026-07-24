@@ -37,6 +37,8 @@
 		BF97F3B0300D2E0C0048D73F /* WeatherHourlyForecastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF97F3AF300D2E0C0048D73F /* WeatherHourlyForecastView.swift */; };
 		BF97F3B2300D2E0C0048D73F /* WeatherDailyForecastView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF97F3B1300D2E0C0048D73F /* WeatherDailyForecastView.swift */; };
 		BF97F3B4300D2E0C0048D73F /* WeatherMinutelyPrecipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF97F3B3300D2E0C0048D73F /* WeatherMinutelyPrecipView.swift */; };
+		BF97F3B6300D2E0C0048D73F /* MembershipView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF97F3B5300D2E0C0048D73F /* MembershipView.swift */; };
+		BF97F3B8300D2E0C0048D73F /* AppConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF97F3B7300D2E0C0048D73F /* AppConfiguration.swift */; };
 		BFD4AA302C72DBE60001C5D6 /* VWeatherApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFD4AA2F2C72DBE60001C5D6 /* VWeatherApp.swift */; };
 		BFD4AA322C72DBE60001C5D6 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFD4AA312C72DBE60001C5D6 /* ContentView.swift */; };
 		BFD4AA342C72DBE70001C5D6 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = BFD4AA332C72DBE70001C5D6 /* Assets.xcassets */; };
@@ -199,6 +201,8 @@
 		BF97F3AF300D2E0C0048D73F /* WeatherHourlyForecastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherHourlyForecastView.swift; sourceTree = "<group>"; };
 		BF97F3B1300D2E0C0048D73F /* WeatherDailyForecastView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherDailyForecastView.swift; sourceTree = "<group>"; };
 		BF97F3B3300D2E0C0048D73F /* WeatherMinutelyPrecipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherMinutelyPrecipView.swift; sourceTree = "<group>"; };
+		BF97F3B5300D2E0C0048D73F /* MembershipView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MembershipView.swift; sourceTree = "<group>"; };
+		BF97F3B7300D2E0C0048D73F /* AppConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConfiguration.swift; sourceTree = "<group>"; };
 		BFD4AA2C2C72DBE60001C5D6 /* VWeather.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VWeather.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BFD4AA2F2C72DBE60001C5D6 /* VWeatherApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VWeatherApp.swift; sourceTree = "<group>"; };
 		BFD4AA312C72DBE60001C5D6 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -406,6 +410,7 @@
 		BF72F76C3004D0A8006556E7 /* Config */ = {
 			isa = PBXGroup;
 			children = (
+				BF97F3B7300D2E0C0048D73F /* AppConfiguration.swift */,
 				FADE0000000000000000111B /* AppSettings.swift */,
 				FB7206623D42CD9D51A01F5E /* VWDesignSystem.swift */,
 			);
@@ -451,6 +456,7 @@
 		BF97F397300931990048D73F /* Setting */ = {
 			isa = PBXGroup;
 			children = (
+				BF97F3B5300D2E0C0048D73F /* MembershipView.swift */,
 				FADE0000000000000000111C /* SettingsView.swift */,
 				FADE00000000000000AA0005 /* AttributionView.swift */,
 			);
@@ -963,7 +969,9 @@
 				FADE00000000000000001219 /* VHLCKAttachmentSyncable.swift in Sources */,
 				FADE0000000000000000121A /* SyncManager.swift in Sources */,
 				FADE0000000000000000121B /* AppSettings.swift in Sources */,
+				BF97F3B8300D2E0C0048D73F /* AppConfiguration.swift in Sources */,
 				FADE0000000000000000121C /* SettingsView.swift in Sources */,
+				BF97F3B6300D2E0C0048D73F /* MembershipView.swift in Sources */,
 				FADE00000000000000000201 /* VHLSQLiteObject.swift in Sources */,
 				FADE00000000000000000202 /* VHLSQLiteObject+SQL.swift in Sources */,
 				FADE00000000000000000203 /* VHLSQLiteObject+Migration.swift in Sources */,
@@ -1214,9 +1222,10 @@
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "用于获取当前位置天气信息";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = NO;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -1249,9 +1258,10 @@
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "用于获取当前位置天气信息";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = NO;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UIUserInterfaceStyle = Dark;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

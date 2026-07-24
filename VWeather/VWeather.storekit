@@ -10,13 +10,13 @@
       "internalID" : "A1B2C3D4-0000-0000-0000-0000000000PR",
       "localizations" : [
         {
-          "description" : "解锁 VWeather 高级功能",
-          "displayName" : "VWeather Pro",
+          "description" : "永久解锁添加和同步收藏城市",
+          "displayName" : "云雾永久会员",
           "locale" : "zh_CN"
         }
       ],
       "productID" : "cn.vincents.VWeather.pro",
-      "referenceName" : "VWeather Pro",
+      "referenceName" : "云雾永久会员",
       "type" : "NonConsumable"
     }
   ],

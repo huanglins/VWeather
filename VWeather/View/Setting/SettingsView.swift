@@ -7,19 +7,37 @@
 
 import SwiftUI
 import CloudKit
+import StoreKit
+import UIKit
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.requestReview) private var requestReview
+    @ObservedObject private var iap = IAPManager.shared
 
     @State private var syncOn = SyncManager.manager.syncIsOpen
     @State private var unit = AppSettings.shared.temperatureUnit
     @State private var iCloudStatusText = "检查中…"
     @State private var syncing = false
     @State private var lastSync: Date? = SyncManager.manager.lastSyncDate
+    @State private var showMembership = false
+    @State private var supportErrorMessage: String?
 
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    Button {
+                        showMembership = true
+                    } label: {
+                        MembershipBannerView(isPro: iap.isPro)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .listRowInsets(EdgeInsets(top: 10, leading: 0, bottom: 6, trailing: 0))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+
                 // iCloud 同步
                 Section {
                     Toggle("iCloud 同步", isOn: $syncOn)
@@ -63,8 +81,31 @@ struct SettingsView: View {
                     NavigationLink {
                         CityListView()
                     } label: {
-                        Label("城市管理", systemImage: "list.bullet")
+                        Text("城市管理")
                     }
+                }
+
+                Section("支持与反馈") {
+                    Button {
+                        sendSupportEmail(kind: .featureWish)
+                    } label: {
+                        supportRow("功能许愿")
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        openReviewPage()
+                    } label: {
+                        supportRow("给个好评")
+                    }
+                    .buttonStyle(.plain)
+
+                    Button {
+                        sendSupportEmail(kind: .feedback)
+                    } label: {
+                        supportRow("用户反馈")
+                    }
+                    .buttonStyle(.plain)
                 }
 
                 // 数据来源
@@ -73,13 +114,13 @@ struct SettingsView: View {
                 // 两者由 AppleWeatherAttribution 一并给出，不要拆开或只留其一。
                 Section {
                     AppleWeatherAttribution()
-                    LabeledContent("天气 · 日月", value: "Apple 天气")
+                    LabeledContent("天气", value: "Apple 天气")
                     LabeledContent("空气质量 · 生活指数", value: "和风天气")
                     LabeledContent("分钟降水 · 气象预警", value: "和风天气")
                 } header: {
                     Text("数据来源")
                 } footer: {
-                    Text("天气数据由 Apple 天气提供，空气质量、生活指数、分钟级降水与气象预警由和风天气提供。日月数据由 SunKit · MoonKit 本地计算。")
+                    Text("天气数据由 Apple 天气提供，空气质量、生活指数、分钟级降水与气象预警由和风天气提供。")
                 }
 
                 // 关于
@@ -89,10 +130,20 @@ struct SettingsView: View {
             }
             .navigationTitle("设置")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(isPresented: $showMembership) {
+                NavigationStack {
+                    MembershipView(showsCloseButton: true)
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("完成") { dismiss() }
                 }
+            }
+            .alert("暂时无法打开", isPresented: supportErrorPresented) {
+                Button("知道了", role: .cancel) {}
+            } message: {
+                Text(supportErrorMessage ?? "请稍后重试")
             }
             .onAppear(perform: refreshiCloudStatus)
         }
@@ -111,6 +162,78 @@ struct SettingsView: View {
         let f = DateFormatter()
         f.dateFormat = "MM-dd HH:mm"
         return f.string(from: date)
+    }
+
+    private var supportErrorPresented: Binding<Bool> {
+        Binding(
+            get: { supportErrorMessage != nil },
+            set: { if !$0 { supportErrorMessage = nil } }
+        )
+    }
+
+    private func supportRow(_ title: String) -> some View {
+        HStack {
+            Text(title)
+                .foregroundStyle(.primary)
+            Spacer(minLength: 0)
+        }
+        .contentShape(Rectangle())
+    }
+
+    private enum SupportEmailKind {
+        case featureWish
+        case feedback
+
+        var subject: String {
+            switch self {
+            case .featureWish: return "【云雾】功能许愿"
+            case .feedback: return "【云雾】用户反馈"
+            }
+        }
+
+        var prompt: String {
+            switch self {
+            case .featureWish: return "希望增加的功能：\n\n使用场景：\n\n"
+            case .feedback: return "遇到的问题或建议：\n\n复现步骤：\n\n"
+            }
+        }
+    }
+
+    private func sendSupportEmail(kind: SupportEmailKind) {
+        var components = URLComponents()
+        components.scheme = "mailto"
+        components.path = AppConfiguration.Support.email
+        components.queryItems = [
+            URLQueryItem(name: "subject", value: kind.subject),
+            URLQueryItem(name: "body", value: kind.prompt + diagnosticText),
+        ]
+
+        guard let url = components.url else {
+            supportErrorMessage = "反馈邮箱配置无效"
+            return
+        }
+
+        UIApplication.shared.open(url, options: [:]) { opened in
+            if !opened {
+                supportErrorMessage = "请先安装并配置邮件应用，或联系 \(AppConfiguration.Support.email)"
+            }
+        }
+    }
+
+    private func openReviewPage() {
+        if let url = AppConfiguration.Store.writeReviewURL {
+            UIApplication.shared.open(url, options: [:]) { opened in
+                if !opened {
+                    supportErrorMessage = "暂时无法打开 App Store"
+                }
+            }
+        } else {
+            requestReview()
+        }
+    }
+
+    private var diagnosticText: String {
+        "\n---\n应用版本：\(appVersion)\n系统版本：\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)\n设备：\(UIDevice.current.model)"
     }
 
     private func triggerSync() {

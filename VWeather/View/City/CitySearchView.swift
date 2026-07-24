@@ -16,6 +16,7 @@ import CoreLocation
 
 struct CitySearchView: View {
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject private var iap = IAPManager.shared
     @State private var keyword = ""
     @State private var searchResults: [CityModel] = []
     @State private var searching = false
@@ -26,6 +27,7 @@ struct CitySearchView: View {
     /// addCity 是按 cityKey upsert 的，重复点不会加出两条，
     /// 但不标一下的话点了像没反应。
     @State private var existingKeys: Set<String> = []
+    @State private var showMembership = false
 
     var onAdd: ((CityModel) -> Void)?
 
@@ -69,6 +71,11 @@ struct CitySearchView: View {
                 if let cur = cities.first(where: { $0.isCurrentLocation == true }),
                    let la = cur.latitude, let lo = cur.longitude {
                     currentLocation = CLLocation(latitude: la, longitude: lo)
+                }
+            }
+            .sheet(isPresented: $showMembership) {
+                NavigationStack {
+                    MembershipView(showsCloseButton: true)
                 }
             }
         }
@@ -229,6 +236,11 @@ struct CitySearchView: View {
     }
 
     private func add(_ city: CityModel) {
+        guard iap.isPro else {
+            showMembership = true
+            return
+        }
+
         let added = CityManager.manager.addCity(city)
         // 取数交给 onAdd 的接收方（CityListView）。
         //
